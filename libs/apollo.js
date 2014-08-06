@@ -5,7 +5,9 @@ var check = require('check-types');
 var async = require('async');
 var querystring = require("querystring");
 var util = require("util");
-var BaseModel = require('./base_model');
+var BaseModel = require('./base_model').BaseModel;
+var TYPE_MAP = require('./base_model').TYPE_MAP;
+
 /**
  * Opzioni per il client cassandra
  * @typedef {Object} Apollo~Configuration
@@ -97,28 +99,6 @@ Apollo.prototype = {
     is_tablename : function (obj){
         return (check.string(obj) && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
     },
-
-    _TYPE_MAP : {    
-        bigint : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.LongType"},
-        blob : {validate : function(){return true;}, dbvalidator : "org.apache.cassandra.db.marshal.BytesType"},
-        boolean : {validate : this.is_boolean, dbvalidator : "org.apache.cassandra.db.marshal.BooleanType"},        
-        decimal   : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DecimalType"},        
-        double    : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DoubleType"},
-        float     : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.FloatType"},
-        int   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.Int32Type"},
-        text      : {validate : this.is_string, dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},
-        timestamp  : {validate : this.is_datetime, dbvalidator : "org.apache.cassandra.db.marshal.TimestampType"},        
-        varint   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
-    },
-
-    _get_type_from_validator : function(val){
-        for(var t in this._TYPE_MAP){            
-            if (this._TYPE_MAP[t].dbvalidator == val)
-                return t;
-        }
-        return null;
-    },
-
    
     _generate_model : function(properties){
 
@@ -163,7 +143,7 @@ Apollo.prototype = {
             throw("Key deve essere un array di nomi di colonna");
 
         for( var k in model_schema.fields){
-            if (!(model_schema.fields[k] in this._TYPE_MAP))
+            if (!(model_schema.fields[k] in TYPE_MAP))
                 throw("Tipo di field non riconosciuto, colonna: " + k);
         }
 
@@ -196,10 +176,13 @@ Apollo.prototype = {
         if(!this.is_tablename(table_name))
             throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
 
+        var qualified_table_name = this._client.options.keyspace+'.'+table_name;
+
         var properties = {
             name : model_name,
             schema : model_schema,
             table_name : table_name,
+            qualified_table_name: qualified_table_name,
             cql : this._client
         };
 

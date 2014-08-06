@@ -50,10 +50,27 @@ describe('Smart Libs -> ', function(){
             key:["v1"] 
         };
 
+        var model_test2 = { 
+            fields:{v1:"int",v2:"text"}, 
+            key:["v1"] 
+        };
+
+        var faluty_model_test1 = { 
+            fields:{v1:"int",v2:"foo"}, 
+            key:["v1"] 
+        };
+
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
             assert.isFunction(TestModel);
             assert.property(TestModel,'find');
+            assert.isFalse(TestModel.is_table_ready());
+        });
+
+        it('add faulty model (silly type)', function(){
+            assert.throws(function(){
+                var TestModel = ap.add_model("test1", faluty_model_test1);
+            })
         });
 
         it('instance model', function(){
@@ -63,6 +80,23 @@ describe('Smart Libs -> ', function(){
             assert.propertyVal(ins,'v1',500);
             assert.notProperty(ins,'v2');
             assert.property(ins,'save');
+        });
+
+
+        it('same name, conflicting schema', function(done){
+            var TestModel = ap.add_model("test1", model_test2);
+            TestModel.init(function(err,result){
+                assert.ok(err);
+                done();
+            });
+        });
+
+        it('same name, same schema', function(done){
+            var TestModel = ap.add_model("test1", model_test1);
+            TestModel.init(function(err,result){
+                assert.notOk(err);
+                done();
+            });
         });
 
         it.skip('pig update', function(done){

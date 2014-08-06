@@ -1,4 +1,26 @@
 
+var TYPE_MAP = {    
+    bigint : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.LongType"},
+    blob : {validate : function(){return true;}, dbvalidator : "org.apache.cassandra.db.marshal.BytesType"},
+    boolean : {validate : this.is_boolean, dbvalidator : "org.apache.cassandra.db.marshal.BooleanType"},        
+    decimal   : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DecimalType"},        
+    double    : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DoubleType"},
+    float     : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.FloatType"},
+    int   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.Int32Type"},
+    text      : {validate : this.is_string, dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},
+    timestamp  : {validate : this.is_datetime, dbvalidator : "org.apache.cassandra.db.marshal.TimestampType"},        
+    varint   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
+};
+
+TYPE_MAP.find_type_by_validator = function(val){
+    for(var t in this){            
+        if (this[t].dbvalidator == val)
+            return t;
+    }
+    return null;
+};
+
+
 var BaseModel = function(instance_values){
     var _fields = {};
     var fields = this.constructor._properties.schema.fields;
@@ -18,6 +40,7 @@ var BaseModel = function(instance_values){
         this[property_name] = instance_values[property_name];
     }
 
+    //console.log(this.constructor._properties.cql);
 };
 
 /* Static Private ---------------------------------------- */
@@ -27,28 +50,29 @@ BaseModel._properties = {
     schema : null
 }
 
-BaseModel._INFO_TABLE_QUERY = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? ALLOW FILTERING;";
-
 BaseModel._create_table = function(callback){
     var properties = this._properties,
         table_name = properties.table_name,
-        model_schema = properties.schema;
+        model_schema = properties.schema,
+        cql = properties.cql;
 
     //controllo esistenza della tabella ed eventuale corrispondenza con lo schema
-    this._get_table_schema(table_name,function(err,db_schema){
+    this._get_db_table_schema(table_name,function(err,db_schema){
         if(err) return callback(err);            
-        if (db_schema){//controllo se uguali            
+        if (db_schema){//controllo se uguali        
             if (!this._schema_compare(model_schema, db_schema))
                 return callback("Lo schema collide con la tabella esistente"); 
             else callback();               
         }
-        else{    //se non esiste viene creata                
-            this._client.execute(this._create_table_query(table_name,model_schema), function(err, result) {
+        else{    //se non esiste viene creata   
+            console.log('creation');             
+            cql.execute(this._create_table_query(table_name,model_schema), function(err, result){
+                console.log(result);
                 if (err) return callback('Fallimento creazione tabella ', err);   
                 //creazione indici  
                 if(model_schema.indexes instanceof Array)
                     async.each(model_schema.indexes, function(idx,next){
-                        this._client.execute(this._create_index_query(table_name,idx), function(err, result) {
+                        cql.execute(this._create_index_query(table_name,idx), function(err, result){
                             if (err) return next('Fallimento creazione indice ', err); 
                             next();
                         });
@@ -91,10 +115,13 @@ BaseModel._create_index_query = function(table_name, index_name){
 
 
 //recupera lo schema della tabella, se la tabella non esiste è null
-BaseModel._get_table_schema = function (table_name, callback){
-    var table_qualified_name = this._properties.cql.keyspace+'.'+table_name;
+BaseModel._get_db_table_schema = function (table_name, callback){
+    var table_name = this._properties.table_name,
+        keyspace = this._properties.cql.options.keyspace;
 
-    this._properties.cql.execute(this._INFO_TABLE_QUERY,[table_qualified_name], function(err, result) {
+    var query = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? AND keyspace_name = ? ALLOW FILTERING;";
+
+    this._properties.cql.execute(query,[table_name,keyspace], function(err, result) {
         if (err) return callback('Errore durante analisi schema tabella: '+err);
         if(!result.rows || result.rows.length === 0)
             return callback();
@@ -102,7 +129,7 @@ BaseModel._get_table_schema = function (table_name, callback){
         var db_schema = {fields:{}};
         for(var r in result.rows){
             var row = result.rows[r];
-            db_schema.fields[row.column_name] = this._get_type_from_validator(row.validator);                
+            db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_validator(row.validator);                
             if(row.type == 'partition_key'){
                 if(!db_schema.key)
                     db_schema.key = [];
@@ -158,7 +185,37 @@ BaseModel._schema_compare_inner = function(schema1,schema2){
 };
 
 
+BaseModel._execute_table_query = function(query, callback){
+    
+    var do_execute_query = function(doquery,docallback){
+        console.log(doquery);
+        docallback();
+    }.bind(this,query);
+
+    if(this.is_table_ready()){
+        do_execute_query(callback);
+    }
+    else{
+        this._init(function(){
+            do_execute_query(callback);
+        });
+    }
+}
+
 /* Static Public ---------------------------------------- */
+
+BaseModel.is_table_ready = function(){
+    return this._ready === true;   
+}
+
+BaseModel.init = function(callback){
+    this._create_table(function(err, result){
+        if(!err)
+            this._ready = true;  
+        callback(err,result);
+    }.bind(this));
+}
+
 
 BaseModel.find = function(filter_ob, options, callback){
     console.log('find ', arguments, this._properties);
@@ -207,9 +264,7 @@ BaseModel.prototype.save = function(options, callback){
             values.push(fieldvalue);
     }
 
-    var table_qualified_name = properties.cql.keyspace+'.'+properties.table_name;
-    
-    var query = "INSERT INTO " + table_qualified_name + " ( ";
+    var query = "INSERT INTO " + properties.qualified_table_name + " ( ";
         query += identifiers.join(" , ") + " ) ";
         query += " VALUES ( " + values.join(" , ") + " ) ";
        
@@ -219,4 +274,7 @@ BaseModel.prototype.save = function(options, callback){
     });
 }
 
-module.exports = BaseModel;
+module.exports = {
+    BaseModel:BaseModel,
+    TYPE_MAP: TYPE_MAP
+};
