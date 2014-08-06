@@ -24,61 +24,81 @@ switch(process.env.TRAVIS){
         break;
 }
 
-describe('Smart Libs -> ', function(){
+describe('Apollo', function(){
+    
+    describe('Global library', function(){
 
-    var ap;
+        var apollo;
 
-    beforeEach(function(done) {
-        if(ap)
-            ap.close();
+        describe('New Apollo', function(){
+            
+            it('is a valid instance', function(){
+                apollo = new Apollo(connection);
+                assert.instanceOf(apollo, Apollo, 'apollo is an instance of Apollo');
+                assert.isFunction(apollo.connect, 'connect is a function of apollo');
+            });
 
-        // Setup
-        Apollo.assert_keyspace(connection,function(err,result){ 
-            if(err)
-                console.log(err);
-            else {
-                ap = new Apollo(connection);
-            }
-            done();
-        });
-    });
-
-    describe('Apollo -> ', function(){        
-
-        var model_test1 = { 
-            fields:{v1:"int",v2:"int"}, 
-            key:["v1"] 
-        };
-
-        it('add model', function(){
-            var TestModel = ap.add_model("test1", model_test1);
-            assert.isFunction(TestModel);
-            assert.property(TestModel,'find');
-        });
-
-        it('instance model', function(){
-            var TestModel = ap.add_model("test1", model_test1);
-            var ins = new TestModel({'v1': 500});
-
-            assert.propertyVal(ins,'v1',500);
-            assert.notProperty(ins,'v2');
-            assert.property(ins,'save');
-        });
-
-        it.skip('pig update', function(done){
-            ap.add_model("test1", model_test1, true, function(err,data){
-                ap.pig_cql_update_connection("test1",true, function(err,data){
-                    if(err) 
-                        console.log('err: '+err);
-                    else 
-                        console.log(data);
-                    done();
-                });
+            it('connect to cassandra', function(done){
+                apollo.connect(done);
             });
         });
+    });
 
+    
+    describe('On apollo instances',function(){
+
+        var ap;
+
+        beforeEach(function(done) {
+            if(ap)
+                ap.close();
+
+            ap = new Apollo(connection);
+
+            // Setup
+            ap.connect(done);
+        });
+
+        describe('Apollo -> ', function(){        
+
+            var model_test1 = { 
+                fields:{v1:"int",v2:"int"}, 
+                key:["v1"] 
+            };
+
+            it('add model', function(){
+                var TestModel = ap.add_model("test1", model_test1);
+                assert.isFunction(TestModel);
+                assert.property(TestModel,'find');
+            });
+
+            it('instance model', function(){
+                var TestModel = ap.add_model("test1", model_test1);
+                var ins = new TestModel({'v1': 500});
+
+                assert.propertyVal(ins,'v1',500);
+                assert.notProperty(ins,'v2');
+                assert.property(ins,'save');
+            });
+
+            it.skip('pig update', function(done){
+                ap.add_model("test1", model_test1, true, function(err,data){
+                    ap.pig_cql_update_connection("test1",true, function(err,data){
+                        if(err) 
+                            console.log('err: '+err);
+                        else 
+                            console.log(data);
+                        done();
+                    });
+                });
+            });
+
+
+        });
 
     });
+
+    
 
 });
 
