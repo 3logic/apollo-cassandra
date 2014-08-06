@@ -1,0 +1,37 @@
+{
+  "name": "apollo",
+  "version": "0.0.1",
+  "description": "A basic ORM for Cassandra",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/3logic/apollo.git"
+  },
+  "dependencies": {
+    "async": "^0.9.0",
+    "check-types": "^1.3.1",
+    "node-cassandra-cql": "^0.4.4"
+  },
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "mocha": "^1.21.3"
+  },
+  "keywords": [
+    "cassandra",
+    "orm",
+    "model",
+    "db",
+    "node",
+    "javascript",
+    "js"
+  ],
+  "author": "3logic",
+  "license": "LGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/3logic/apollo/issues"
+  },
+  "homepage": "https://github.com/3logic/apollo"
+}
