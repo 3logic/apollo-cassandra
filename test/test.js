@@ -3,9 +3,28 @@ var assert = chai.assert;
 var Apollo = require(__dirname +'/../libs/apollo');
 
 
-var conf = require(__dirname +'/../../configurations/common.json'),
-    connection = conf.cassandra.connections['data'];
-connection.keyspace = 'tests';
+var conf;
+switch(process.env.TRAVIS){
+    case 'true':
+        conf = {
+            "hosts": [
+                "127.0.0.1"
+            ],
+            "keyspace": "tests"
+        };
+        break;
+    default:
+        conf = {
+            "hosts": [
+                "192.168.100.61",
+                "192.168.100.62"
+            ],
+            "keyspace": "tests"
+        };
+        break;
+}
+console.log(process.env);
+connection = conf;
 
 var ap;
 
