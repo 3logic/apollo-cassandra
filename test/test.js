@@ -50,16 +50,22 @@ describe('Smart Libs -> ', function(){
             key:["v1"] 
         };
 
-        it('add model', function(done){
-            ap.add_model("test1", model_test1, true, function(err,data){
-                if(err) 
-                    console.log('err: '+err);
-                done();
-            });
-            
+        it('add model', function(){
+            var TestModel = ap.add_model("test1", model_test1);
+            assert.isFunction(TestModel);
+            assert.property(TestModel,'find');
         });
 
-        it('pig update', function(done){
+        it('instance model', function(){
+            var TestModel = ap.add_model("test1", model_test1);
+            var ins = new TestModel({'v1': 500});
+
+            assert.propertyVal(ins,'v1',500);
+            assert.notProperty(ins,'v2');
+            assert.property(ins,'save');
+        });
+
+        it.skip('pig update', function(done){
             ap.add_model("test1", model_test1, true, function(err,data){
                 ap.pig_cql_update_connection("test1",true, function(err,data){
                     if(err) 
@@ -69,22 +75,8 @@ describe('Smart Libs -> ', function(){
                     done();
                 });
             });
-
         });
 
-        it('generate model', function(){
-            console.log('test');
-            var TestModel = ap._generate_model(model_test1);
-            var ins = new TestModel({'v1': 500});
-            ins.save();
-            TestModel.find();
-            console.log(ins.v1, ins.v2);
-            for(var i in ins){
-                console.log(i);
-            }
-
-
-        });
 
     });
 
