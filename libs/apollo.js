@@ -280,7 +280,7 @@ Apollo.assert_keyspace = function(connection, callback){
         client = new cql.Client(connection);
 
     var query = util.format(
-        "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };",
+        "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
         keyspace_name
     );
 

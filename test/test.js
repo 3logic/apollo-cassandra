@@ -3,10 +3,10 @@ var assert = chai.assert;
 var Apollo = require(__dirname +'/../libs/apollo');
 
 
-var conf;
+var connection;
 switch(process.env.TRAVIS){
     case 'true':
-        conf = {
+        connection = {
             "hosts": [
                 "127.0.0.1"
             ],
@@ -14,7 +14,7 @@ switch(process.env.TRAVIS){
         };
         break;
     default:
-        conf = {
+        connection = {
             "hosts": [
                 "192.168.100.61",
                 "192.168.100.62"
@@ -23,33 +23,27 @@ switch(process.env.TRAVIS){
         };
         break;
 }
-console.log(process.env);
-connection = conf;
-
-var ap;
-
-
-
-beforeEach(function(done) {
-    if(ap)
-        ap.close();
-
-    // Setup
-    Apollo.assert_keyspace(connection,function(err,result){ 
-        if(err)
-            console.log(err);
-        else {
-            ap = new Apollo(connection);
-        }
-        done();
-    });
-});
-
-
 
 describe('Smart Libs -> ', function(){
 
-    describe('Apollo -> ', function(){
+    var ap;
+
+    beforeEach(function(done) {
+        if(ap)
+            ap.close();
+
+        // Setup
+        Apollo.assert_keyspace(connection,function(err,result){ 
+            if(err)
+                console.log(err);
+            else {
+                ap = new Apollo(connection);
+            }
+            done();
+        });
+    });
+
+    describe('Apollo -> ', function(){        
 
         var model_test1 = { 
             fields:{v1:"int",v2:"int"}, 
@@ -79,6 +73,7 @@ describe('Smart Libs -> ', function(){
         });
 
         it('generate model', function(){
+            console.log('test');
             var TestModel = ap._generate_model(model_test1);
             var ins = new TestModel({'v1': 500});
             ins.save();
