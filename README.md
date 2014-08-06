@@ -1,4 +1,4 @@
 apollo
 ======
 
-A basic ORM for Cassandra
+A basic ORM for Cassandra!
