@@ -24,38 +24,54 @@ switch(process.env.TRAVIS){
         break;
 }
 
-describe('Smart Libs -> ', function(){
+describe('Apollo', function(){
+    
+    describe('Global library', function(){
 
-    var ap;
+        var apollo;
 
-    beforeEach(function(done) {
-        if(ap)
-            ap.close();
+        describe('New Apollo', function(){
+            
+            it('is a valid instance', function(){
+                apollo = new Apollo(connection);
+                assert.instanceOf(apollo, Apollo, 'apollo is an instance of Apollo');
+                assert.isFunction(apollo.connect, 'connect is a function of apollo');
+            });
 
-        // Setup
-        Apollo.assert_keyspace(connection,function(err,result){ 
-            if(err)
-                console.log(err);
-            else {
-                ap = new Apollo(connection);
-            }
-            done();
+            it('connect to cassandra', function(done){
+                apollo.connect(done);
+            });
         });
     });
 
-    describe('Apollo -> ', function(){        
+    
+    describe('On apollo instances',function(){
+
+        var ap;
+
+        beforeEach(function(done) {
+            if(ap)
+                ap.close();
+
+            ap = new Apollo(connection);
+
+            // Setup
+            ap.connect(done);
+        });
+
 
         var model_test1 = { 
             fields:{v1:"int",v2:"int"}, 
             key:["v1"] 
         };
 
+
         var model_test2 = { 
             fields:{v1:"int",v2:"text"}, 
             key:["v1"] 
         };
 
-        var faluty_model_test1 = { 
+        var faulty_model_test1 = { 
             fields:{v1:"int",v2:"foo"}, 
             key:["v1"] 
         };
@@ -67,9 +83,10 @@ describe('Smart Libs -> ', function(){
             assert.isFalse(TestModel.is_table_ready());
         });
 
+
         it('add faulty model (silly type)', function(){
             assert.throws(function(){
-                var TestModel = ap.add_model("test1", faluty_model_test1);
+                var TestModel = ap.add_model("test1", faulty_model_test1);
             })
         });
 
@@ -99,6 +116,7 @@ describe('Smart Libs -> ', function(){
             });
         });
 
+           
         it.skip('pig update', function(done){
             ap.add_model("test1", model_test1, true, function(err,data){
                 ap.pig_cql_update_connection("test1",true, function(err,data){
@@ -110,7 +128,6 @@ describe('Smart Libs -> ', function(){
                 });
             });
         });
-
 
     });
 
