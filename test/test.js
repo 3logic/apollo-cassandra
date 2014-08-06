@@ -100,22 +100,29 @@ describe('Apollo', function(){
         });
 
 
-        it('same name, conflicting schema', function(done){
-            var TestModel = ap.add_model("test1", model_test2);
-            TestModel.init(function(err,result){
-                assert.ok(err);
-                done();
+        describe('Schema conflicts on init',function(){
+            beforeEach(function(done) {
+                var TestModel = ap.add_model("test1", model_test1);
+                TestModel.init(done);
+            });
+
+            it('same name, conflicting schema', function(done){
+                var TestModel = ap.add_model("test1", model_test2);
+                TestModel.init(function(err,result){
+                    assert.ok(err);
+                    done();
+                });
+            });
+
+
+            it('same name, same schema', function(done){
+                var TestModel = ap.add_model("test1", model_test1);
+                TestModel.init(function(err,result){
+                    assert.notOk(err);
+                    done();
+                });
             });
         });
-
-        it('same name, same schema', function(done){
-            var TestModel = ap.add_model("test1", model_test1);
-            TestModel.init(function(err,result){
-                assert.notOk(err);
-                done();
-            });
-        });
-
            
         it.skip('pig update', function(done){
             ap.add_model("test1", model_test1, true, function(err,data){
