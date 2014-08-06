@@ -401,7 +401,7 @@ Apollo.prototype = {
                 if((typeof(model_schema.indexes[j]) != "string") || !(model_schema.indexes[j] in model_schema.fields))
                     throw("indexes deve essere un array di nomi di colonna");
         }
-    }
+    },
 
     /**
      * Aggiunge un modello a quelli conosciuti

@@ -78,7 +78,7 @@ describe('Smart Libs -> ', function(){
 
         });
 
-        it.only('generate model', function(){
+        it('generate model', function(){
             var TestModel = ap._generate_model(model_test1);
             var ins = new TestModel({'v1': 500});
             ins.save();
