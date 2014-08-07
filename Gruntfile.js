@@ -11,6 +11,16 @@ module.exports = function(grunt) {
         src: ['test/**/*.js']
       }
     },
+    mochacov: {
+      coverage: {
+        options: {
+          coveralls: true
+        }
+      },
+      options: {
+        files: 'test/**/*.js'
+      }
+    },
     
     jshint: {
       files: ['Gruntfile.js', 'libs/**/*.js', 'test/**/*.js'],
@@ -35,8 +45,10 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-mocha-cov');
 
-  grunt.registerTask('test', ['jshint', 'mochaTest']);
+
+  grunt.registerTask('test', ['mochaTest','mochacov']);
   grunt.registerTask('default', ['jshint', 'mochaTest', 'jsdoc']);
 
 };
