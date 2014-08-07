@@ -141,9 +141,26 @@ Apollo.prototype = {
                 throw("Tipo di field non riconosciuto, colonna: " + k);
         }
 
+
+        if( typeof(model_schema.key[0]) == "string" ){
+            if(!(model_schema.key[0] in model_schema.fields)) 
+                throw("La partition key deve essere un nome di colonna");
+        }
+        else if(model_schema.key[0] instanceof Array){
+            for(var j in model_schema.key[0]){
+                if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
+                        throw("La partition key multipla deve essere un array di nomi di colonna");
+            }
+        }
+        else 
+            throw("La partition key deve essere una stringa o un array di nomi di colonna");
+        
         for(var i in model_schema.key){
-            if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
-                throw("Key deve essere un array di nomi di colonna");
+            if(i>0){
+                if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
+                    throw("Key deve essere un array di nomi di colonna");
+            }
+
         }
 
         if(model_schema.indexes){
@@ -160,9 +177,12 @@ Apollo.prototype = {
      * @param {string}  model_name         Nome  del modello
      * @param {obj}     model_schema      schema del modello (in formato definito)
      */
-    add_model : function(model_name, model_schema) {
+    get_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
             throw("Si deve specificare un nome per il modello");    
+
+        options = options || {};
+        options.mismatch_behaviour = options.mismatch_behaviour || 'fail';
 
         this.validate_model_schema(model_schema);
 
@@ -177,7 +197,8 @@ Apollo.prototype = {
             schema : model_schema,
             table_name : table_name,
             qualified_table_name: qualified_table_name,
-            cql : this._client
+            cql : this._client,
+            mismatch_behaviour : options.mismatch_behaviour
         };
 
         return (this._models[model_name] = this._generate_model(properties));

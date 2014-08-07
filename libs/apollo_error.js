@@ -1,7 +1,7 @@
 var util = require('util');
 
 var AERROR_TYPES = {
-	'default': {
+	'unspecified': {
 		msg: "Unspecified Apollo error ->"
 	},
 	'model.tablecreation.dbschemaquery': {
@@ -40,7 +40,7 @@ var build_error = function(){
 	var argsarray = Array.prototype.slice.call(arguments);
 	var name = argsarray.length ? argsarray.shift() : '_none_given_';
 	
-	var error_template = AERROR_TYPES[name] || AERROR_TYPES.default,
+	var error_template = AERROR_TYPES[name] || AERROR_TYPES.unspecified,
 		error_msg;
 	
 	error_msg = argsarray.length ? 

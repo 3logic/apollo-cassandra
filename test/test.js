@@ -76,6 +76,18 @@ describe('Apollo > ', function(){
             key:["v1"] 
         };
 
+        var model_test5 = { 
+            fields:{v1:"int",v2:"int",v3:"int",v4:"int",v5:"int"}, 
+            key:[["v1","v2"],"v3"],
+            indexes:["v5","v4"] 
+        };
+
+
+        it.only('create table query',function(done){
+            var TestModel = ap.add_model("test5", model_test5);
+            TestModel.init(done);
+        });
+
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
             assert.isFunction(TestModel);
@@ -154,6 +166,24 @@ describe('Apollo > ', function(){
                 ins.save(function(err,result){
                     assert.ok(err);
                     assert.propertyVal(err,'name','apollo.model.save.invalidvalue');
+                    done();
+                });
+            });
+
+        });
+
+        describe('Find > ',function(){
+            var TestModel;
+
+            beforeEach(function(done) {
+                TestModel = ap.add_model("test1", model_test1);
+                TestModel.init(done);
+            });
+
+            it('successful basic save', function(done){
+                var ins = new TestModel({'v1': 500});
+                ins.save(function(err,result){
+                    assert.notOk(err);
                     done();
                 });
             });

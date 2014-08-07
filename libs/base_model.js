@@ -1,6 +1,8 @@
 var util = require('util'),
     build_error = require('./apollo_error.js'),
-    cql = require('node-cassandra-cql');
+    cql = require('node-cassandra-cql'),
+    async = require('async'),
+    lodash = require('lodash');
 
 var cql_consistencies = cql.types.consistencies;
 var TYPE_MAP = require('./cassandra_types');
@@ -44,8 +46,19 @@ BaseModel._create_table = function(callback){
     //controllo esistenza della tabella ed eventuale corrispondenza con lo schema
     this._get_db_table_schema(table_name,function(err,db_schema){
         if(err) return callback(err);            
-        if (db_schema){//controllo se uguali        
-            if (!this._schema_compare(model_schema, db_schema))
+        if (db_schema){//controllo se uguali
+            
+            
+            var index_sort = function(a,b){
+                return a > b ? 1 : (a < b ? -1 : 0);
+            }
+
+            if(model_schema.indexes)     
+                model_schema.indexes.sort(index_sort);
+            if(db_schema.indexes)     
+                db_schema.indexes.sort(index_sort);
+
+            if (!lodash.isEqual(model_schema, db_schema))
                 return callback(build_error('model.tablecreation.schemamismatch', table_name)); 
             else callback();               
         }
@@ -80,16 +93,23 @@ BaseModel._drop_table = function(callback){
 //crea query con parametri da riempire
 BaseModel._create_table_query = function(table_name,schema){
     //creazione tabella
-    var query = "CREATE TABLE IF NOT EXISTS  \"" + table_name + "\" (";
     var rows = [];
     for(var k in schema.fields)
         rows.push(k + " " + schema.fields[k]);
-    query += rows.join(" , ");
 
-    if(schema.key)
-        query += " , PRIMARY KEY ((" + schema.key.join(",") + "))";
 
-    query +=" ); ";
+    var partition_key = schema.key.shift();
+    partition_key = partition_key instanceof Array? partition_key.join(",") : partition_key;
+    var clustering_key = schema.key.length ?  ','+schema.key.join(",") : '';
+
+
+    query = util.format(
+        'CREATE TABLE IF NOT EXISTS  "%s" (%s , PRIMARY KEY((%s)%s));',
+        table_name,
+        rows.join(" , "),
+        partition_key,
+        clustering_key
+    );
 
     return query;
 };
@@ -97,7 +117,7 @@ BaseModel._create_table_query = function(table_name,schema){
 
 //crea query per aggiunta indice
 BaseModel._create_index_query = function(table_name, index_name){
-    var query = utils.format(
+    var query = util.format(
         "CREATE INDEX IF NOT EXISTS ON %s (%s);", 
         table_name, 
         index_name
@@ -125,8 +145,13 @@ BaseModel._get_db_table_schema = function (table_name, callback){
             db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_dbvalidator(row.validator);                
             if(row.type == 'partition_key'){
                 if(!db_schema.key)
-                    db_schema.key = [];
-                db_schema.key.push(row.column_name);
+                    db_schema.key = [[]];
+                db_schema.key[0][row.component_index] = row.column_name;
+            }
+            else if(row.type == 'clustering_key'){
+                if(!db_schema.key)
+                    db_schema.key = [[]];
+                db_schema.key[row.component_index+1] = row.column_name;
             }            
             if(row.index_name){
                 if(!db_schema.indexes)
@@ -139,44 +164,6 @@ BaseModel._get_db_table_schema = function (table_name, callback){
     }.bind(this));
 
 };
-
-BaseModel._schema_compare = function(schema1,schema2){
-    return this._schema_compare_inner(schema1,schema2) && this._schema_compare_inner(schema2,schema1);
-};
-
-BaseModel._schema_compare_inner = function(schema1,schema2){
-    if( (typeof(schema1) != typeof(schema2) ) && ( (schema1 === null) != (schema2 === null) ) )
-        return false;
-
-    for (var p in schema1){
-        //array
-        if(schema1[p] instanceof Array){
-            //controllo che sia array e della stessa lunghezza
-            if(!(schema2[p] instanceof Array) || schema1[p].length != schema2[p].length)
-                return false;
-            //ciclo elementi per vedere se esistono in entrambi
-            for(var i in schema1[p]){
-                var found = false;
-                for(var j in schema2[p])
-                    if(this._schema_compare(schema2[p][j],schema1[p][i])){
-                        found = true; break;
-                    }
-                if(!found)
-                    return false;
-            }
-        }
-        //oggetti (ricorsivo)
-        else if(typeof(schema1[p]) == "object"){
-            if(!this._schema_compare(schema1[p],schema2[p]))
-                return false;
-        }else{
-            if(schema1[p] !== schema2[p])
-                return false;
-        }
-    }
-    return true;
-};
-
 
 BaseModel._execute_table_query = function(query, cons_name, callback){
     
@@ -231,6 +218,12 @@ BaseModel.init = function(options, callback){
   */
 
 BaseModel.find = function(query_ob, options, callback){
+    if(arguments.length == 2){
+        callback = options;
+        options = undefined;
+    }
+    if(!callback)
+        throw 'Callback needed!';
 
     console.log('find ', arguments, this._properties);
 };
