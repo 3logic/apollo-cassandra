@@ -1,25 +1,11 @@
+var util = require('util'),
+    build_error = require('./apollo_error.js'),
+    cql = require('node-cassandra-cql');
 
-var TYPE_MAP = {    
-    bigint : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.LongType"},
-    blob : {validate : function(){return true;}, dbvalidator : "org.apache.cassandra.db.marshal.BytesType"},
-    boolean : {validate : this.is_boolean, dbvalidator : "org.apache.cassandra.db.marshal.BooleanType"},        
-    decimal   : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DecimalType"},        
-    double    : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.DoubleType"},
-    float     : {validate : this.is_number, dbvalidator : "org.apache.cassandra.db.marshal.FloatType"},
-    int   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.Int32Type"},
-    text      : {validate : this.is_string, dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},
-    timestamp  : {validate : this.is_datetime, dbvalidator : "org.apache.cassandra.db.marshal.TimestampType"},        
-    varint   : {validate : this.is_integer, dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
-};
+var cql_consistencies = cql.types.consistencies;
+var TYPE_MAP = require('./cassandra_types');
 
-TYPE_MAP.find_type_by_validator = function(val){
-    for(var t in this){            
-        if (this[t].dbvalidator == val)
-            return t;
-    }
-    return null;
-};
-
+var noop = function(){};
 
 var BaseModel = function(instance_values){
     var _fields = {};
@@ -40,7 +26,6 @@ var BaseModel = function(instance_values){
         this[property_name] = instance_values[property_name];
     }
 
-    //console.log(this.constructor._properties.cql);
 };
 
 /* Static Private ---------------------------------------- */
@@ -61,19 +46,17 @@ BaseModel._create_table = function(callback){
         if(err) return callback(err);            
         if (db_schema){//controllo se uguali        
             if (!this._schema_compare(model_schema, db_schema))
-                return callback("Lo schema collide con la tabella esistente"); 
+                return callback(build_error('model.tablecreation.schemamismatch', table_name)); 
             else callback();               
         }
-        else{    //se non esiste viene creata   
-            console.log('creation');             
+        else{    //se non esiste viene creata            
             cql.execute(this._create_table_query(table_name,model_schema), function(err, result){
-                console.log(result);
-                if (err) return callback('Fallimento creazione tabella ', err);   
+                if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
                 //creazione indici  
                 if(model_schema.indexes instanceof Array)
                     async.each(model_schema.indexes, function(idx,next){
                         cql.execute(this._create_index_query(table_name,idx), function(err, result){
-                            if (err) return next('Fallimento creazione indice ', err); 
+                            if (err) return callback(build_error('model.tablecreation.dbindex', err));
                             next();
                         });
                     }.bind(this),callback);
@@ -84,6 +67,15 @@ BaseModel._create_table = function(callback){
     }.bind(this));
 };
 
+BaseModel._drop_table = function(callback){
+    var properties = this._properties,
+        table_name = properties.table_name,
+        cql = properties.cql;
+
+    var query = "DROP TABLE IF EXISTS  \"" + table_name + "\;";
+
+    cql.execute(query,callback);
+};
 
 //crea query con parametri da riempire
 BaseModel._create_table_query = function(table_name,schema){
@@ -122,14 +114,15 @@ BaseModel._get_db_table_schema = function (table_name, callback){
     var query = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? AND keyspace_name = ? ALLOW FILTERING;";
 
     this._properties.cql.execute(query,[table_name,keyspace], function(err, result) {
-        if (err) return callback('Errore durante analisi schema tabella: '+err);
+        if (err) return callback(build_error('model.tablecreation.dbschemaquery', err));
+
         if(!result.rows || result.rows.length === 0)
             return callback();
 
         var db_schema = {fields:{}};
         for(var r in result.rows){
             var row = result.rows[r];
-            db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_validator(row.validator);                
+            db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_dbvalidator(row.validator);                
             if(row.type == 'partition_key'){
                 if(!db_schema.key)
                     db_schema.key = [];
@@ -185,18 +178,17 @@ BaseModel._schema_compare_inner = function(schema1,schema2){
 };
 
 
-BaseModel._execute_table_query = function(query, callback){
+BaseModel._execute_table_query = function(query, cons_name, callback){
     
     var do_execute_query = function(doquery,docallback){
-        console.log(doquery);
-        docallback();
+        this._properties.cql.execute(doquery, cql_consistencies[cons_name], docallback);
     }.bind(this,query);
 
     if(this.is_table_ready()){
         do_execute_query(callback);
     }
     else{
-        this._init(function(){
+        this.init(function(){
             do_execute_query(callback);
         });
     }
@@ -208,44 +200,67 @@ BaseModel.is_table_ready = function(){
     return this._ready === true;   
 }
 
-BaseModel.init = function(callback){
-    this._create_table(function(err, result){
+BaseModel.init = function(options, callback){
+    if(!callback){
+        callback = options;
+        options = undefined;
+    }
+    
+    var after_create = function(err, result){
         if(!err)
             this._ready = true;  
         callback(err,result);
-    }.bind(this));
+    }.bind(this)
+
+    if(options && options.drop === true){
+        this._drop_table(function(err){
+            if(err) return callback(build_error('model.tablecreation.dbdrop',err))
+            this._create_table(after_create);
+        });
+    }
+    else
+        this._create_table(after_create);
 }
 
+ /**
+  * Oggetto di definizione della query di SELECT a Cassandra
+  * 
+  * @typedef {Object} Apollo~Findobject
+  * @property {String} type - error type, as enumerated in AERROR_TYPES
+  * @property {String} msg  - error message (with replaced parameters if any)
+  */
 
-BaseModel.find = function(filter_ob, options, callback){
+BaseModel.find = function(query_ob, options, callback){
+
     console.log('find ', arguments, this._properties);
 };
 
 
 BaseModel.prototype.save = function(options, callback){
+    if(arguments.length == 1){
+        callback = options;
+        options = undefined;
+    }
+    callback = callback || noop;
+
     var identifiers = [], values = [],
         properties = this.constructor._properties,
         schema = properties.schema;
-    
+
     for(var f in schema.fields){
         var fieldtype = schema.fields[f],
             fieldvalue = this[f],
-            fieldvalidator = _TYPE_MAP.fieldtype.validator;
+            fieldvalidator = TYPE_MAP[fieldtype].validator;
 
         if(!fieldvalue){
             if(schema.key.indexOf(f) < 0)
                 continue;
             else
-                return callback("La chiave deve essere valorizzata nell'oggetto");
+                return callback(build_error('model.save.unsetkey',f));
         }
 
         if(!fieldvalidator(fieldvalue)){
-            return callback(utils.format(
-                "Valore %s non valido per Campo %s (Tipo %s)",
-                fieldvalue,
-                f,
-                fieldtype
-            ));
+            return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
         }
 
         identifiers.push(f);
@@ -264,17 +279,14 @@ BaseModel.prototype.save = function(options, callback){
             values.push(fieldvalue);
     }
 
-    var query = "INSERT INTO " + properties.qualified_table_name + " ( ";
-        query += identifiers.join(" , ") + " ) ";
-        query += " VALUES ( " + values.join(" , ") + " ) ";
-       
-    this._properties.cql.execute(query, function(err, result) {
-        if(err) return callback(err);
-        callback();
-    });
+    var query = util.format(
+        "INSERT INTO %s ( %s ) VALUES ( %s )",
+        properties.qualified_table_name,
+        identifiers.join(" , "),
+        values.join(" , ")
+    );
+    
+    this.constructor._execute_table_query(query,'one',callback);
 }
 
-module.exports = {
-    BaseModel:BaseModel,
-    TYPE_MAP: TYPE_MAP
-};
+module.exports = BaseModel;

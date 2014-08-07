@@ -24,13 +24,13 @@ switch(process.env.TRAVIS){
         break;
 }
 
-describe('Apollo', function(){
+describe('Apollo > ', function(){
     
     describe('Global library', function(){
 
         var apollo;
 
-        describe('New Apollo', function(){
+        describe('New Apollo > ', function(){
             
             it('is a valid instance', function(){
                 apollo = new Apollo(connection);
@@ -45,7 +45,7 @@ describe('Apollo', function(){
     });
 
     
-    describe('On apollo instances',function(){
+    describe('On apollo instances > ',function(){
 
         var ap;
 
@@ -110,10 +110,10 @@ describe('Apollo', function(){
                 var TestModel = ap.add_model("test1", model_test2);
                 TestModel.init(function(err,result){
                     assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
                     done();
                 });
             });
-
 
             it('same name, same schema', function(done){
                 var TestModel = ap.add_model("test1", model_test1);
@@ -123,7 +123,44 @@ describe('Apollo', function(){
                 });
             });
         });
-           
+        
+        describe('Save > ',function(){
+            var TestModel;
+
+            beforeEach(function(done) {
+                TestModel = ap.add_model("test1", model_test1);
+                TestModel.init(done);
+            });
+
+            it('successful basic save', function(done){
+                var ins = new TestModel({'v1': 500});
+                ins.save(function(err,result){
+                    assert.notOk(err);
+                    done();
+                });
+            });
+
+            it('failing basic save (unset key)', function(done){
+                var ins = new TestModel({'v2': 42});
+                ins.save(function(err,result){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.save.unsetkey');
+                    done();
+                });
+            });
+
+            it('failing basic save (wrong type)', function(done){
+                var ins = new TestModel({'v1': 500, 'v2': 'foo'});
+                ins.save(function(err,result){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.save.invalidvalue');
+                    done();
+                });
+            });
+
+        });
+
+
         it.skip('pig update', function(done){
             ap.add_model("test1", model_test1, true, function(err,data){
                 ap.pig_cql_update_connection("test1",true, function(err,data){
