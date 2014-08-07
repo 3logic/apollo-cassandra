@@ -77,7 +77,7 @@ alex.save(function(err){
 ##About
 
 Apollo is brought to you by
-- Niccolò Biondi
+- [Niccolò Biondi](https://github.com/bionicco)
 - [Elia Cogodi](https://github.com/ecogodi)
 - [Fabrizio Rugeri](https://github.com/ramiel)
 

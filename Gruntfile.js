@@ -7,19 +7,32 @@ module.exports = function(grunt) {
       test: {
         options: {
           reporter: 'spec'
-        },
-        src: ['test/**/*.js']
+        }
       },
       coverage: {
         options: {
           coveralls: {
             repoToken: '0aRlqM9q5jCD6L0Gnjx0sxmNHT5dI23aC'
           }
-        },
-        src: ['test/**/*.js']
+        }
+      },
+      local_coverage: {
+        options: {
+          reporter: 'html-cov',
+          quiet: true,
+          output: 'coverage/coverage.html'
+        }
+      },
+      md: {
+        options: {
+          reporter: 'markdown',
+          output: 'coverage/tests_desc.md'
+        }
       },
       options: {
-        files: 'test/**/*.js'
+        files:{
+          src: ['test/**/*.js']
+        }
       }
     },
     
@@ -48,7 +61,6 @@ module.exports = function(grunt) {
 
  
   grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-mocha-cov');
 
@@ -56,6 +68,5 @@ module.exports = function(grunt) {
   grunt.registerTask('default', ['jshint', 'test', 'doc']);
   grunt.registerTask('doc', ['jsdoc']);
   grunt.registerTask('test', ['mochacov']);
-
 
 };

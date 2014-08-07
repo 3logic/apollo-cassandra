@@ -29,7 +29,6 @@
     "grunt-contrib-jshint": "^0.10.0",
     "grunt-jsdoc": "^0.5.6",
     "grunt-mocha-cov": "^0.3.0",
-    "grunt-mocha-test": "^0.11.0",
     "mocha": "^1.21.3"
   },
   "keywords": [
