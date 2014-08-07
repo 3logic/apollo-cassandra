@@ -24,11 +24,15 @@ module.exports = function(grunt) {
     },
     
     jshint: {
-      files: ['Gruntfile.js', 'libs/**/*.js', 'test/**/*.js'],
-      options: {
-        force: true,
-        // options here to override JSHint defaults
-        globals: {}
+      dev:{
+        files: {
+          src: ['Gruntfile.js', 'libs/**/*.js', 'test/**/*.js']
+        },
+        options: {
+          force: true,
+          // options here to override JSHint defaults
+          globals: {}
+        }
       }
     },
     jsdoc : {
@@ -49,7 +53,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-mocha-cov');
 
 
+  grunt.registerTask('default', ['jshint', 'test', 'doc']);
+  grunt.registerTask('doc', ['jsdoc']);
   grunt.registerTask('test', ['mochacov']);
-  grunt.registerTask('default', ['jshint', 'mochaTest', 'jsdoc']);
+
 
 };
