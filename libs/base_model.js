@@ -41,13 +41,29 @@ BaseModel._create_table = function(callback){
     var properties = this._properties,
         table_name = properties.table_name,
         model_schema = properties.schema,
+        mismatch_behaviour = properties.mismatch_behaviour,
         cql = properties.cql;
 
     //controllo esistenza della tabella ed eventuale corrispondenza con lo schema
-    this._get_db_table_schema(table_name,function(err,db_schema){
-        if(err) return callback(err);            
+    this._get_db_table_schema(function(err,db_schema){
+        if(err) return callback(err);
+
+        var after_dbcreate = function(err, result){
+            if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
+            //creazione indici  
+            if(model_schema.indexes instanceof Array)
+                async.each(model_schema.indexes, function(idx,next){
+                    cql.execute(this._create_index_query(table_name,idx), function(err, result){
+                        if (err) return callback(build_error('model.tablecreation.dbindex', err));
+                        next();
+                    });
+                }.bind(this),callback);
+            else
+                callback();
+        }.bind(this);      
+
+
         if (db_schema){//controllo se uguali
-            
             
             var index_sort = function(a,b){
                 return a > b ? 1 : (a < b ? -1 : 0);
@@ -58,24 +74,20 @@ BaseModel._create_table = function(callback){
             if(db_schema.indexes)     
                 db_schema.indexes.sort(index_sort);
 
-            if (!lodash.isEqual(model_schema, db_schema))
-                return callback(build_error('model.tablecreation.schemamismatch', table_name)); 
+            if (!lodash.isEqual(model_schema, db_schema)){
+                //console.log('mismatch', model_schema, db_schema);
+                if(mismatch_behaviour === 'drop'){
+                    this._drop_table(function(err,result){
+                        if (err) return callback(build_error('model.tablecreation.dbcreate', err));
+                        cql.execute(this._create_table_query(table_name,model_schema), after_dbcreate);
+                    }.bind(this));
+                } else
+                    return callback(build_error('model.tablecreation.schemamismatch', table_name));
+            }
             else callback();               
         }
         else{    //se non esiste viene creata            
-            cql.execute(this._create_table_query(table_name,model_schema), function(err, result){
-                if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
-                //creazione indici  
-                if(model_schema.indexes instanceof Array)
-                    async.each(model_schema.indexes, function(idx,next){
-                        cql.execute(this._create_index_query(table_name,idx), function(err, result){
-                            if (err) return callback(build_error('model.tablecreation.dbindex', err));
-                            next();
-                        });
-                    }.bind(this),callback);
-                else
-                    callback();
-            }.bind(this));
+            cql.execute(this._create_table_query(table_name,model_schema), after_dbcreate);
         }
     }.bind(this));
 };
@@ -85,7 +97,7 @@ BaseModel._drop_table = function(callback){
         table_name = properties.table_name,
         cql = properties.cql;
 
-    var query = "DROP TABLE IF EXISTS  \"" + table_name + "\;";
+    var query = 'DROP TABLE IF EXISTS  "' + table_name + '";';
 
     cql.execute(query,callback);
 };
@@ -98,10 +110,11 @@ BaseModel._create_table_query = function(table_name,schema){
         rows.push(k + " " + schema.fields[k]);
 
 
-    var partition_key = schema.key.shift();
-    partition_key = partition_key instanceof Array? partition_key.join(",") : partition_key;
-    var clustering_key = schema.key.length ?  ','+schema.key.join(",") : '';
+    var partition_key = schema.key[0],
+        clustering_key = schema.key.slice(1,schema.key.length-1);
 
+    partition_key  = partition_key instanceof Array ? partition_key.join(",") : partition_key;
+    clustering_key = clustering_key.length ?  ','+clustering_key.join(",") : '';
 
     query = util.format(
         'CREATE TABLE IF NOT EXISTS  "%s" (%s , PRIMARY KEY((%s)%s));',
@@ -127,7 +140,7 @@ BaseModel._create_index_query = function(table_name, index_name){
 
 
 //recupera lo schema della tabella, se la tabella non esiste è null
-BaseModel._get_db_table_schema = function (table_name, callback){
+BaseModel._get_db_table_schema = function (callback){
     var table_name = this._properties.table_name,
         keyspace = this._properties.cql.options.keyspace;
 
@@ -146,7 +159,7 @@ BaseModel._get_db_table_schema = function (table_name, callback){
             if(row.type == 'partition_key'){
                 if(!db_schema.key)
                     db_schema.key = [[]];
-                db_schema.key[0][row.component_index] = row.column_name;
+                db_schema.key[0][row.component_index||0] = row.column_name;
             }
             else if(row.type == 'clustering_key'){
                 if(!db_schema.key)
@@ -246,7 +259,7 @@ BaseModel.prototype.save = function(options, callback){
             fieldvalidator = TYPE_MAP[fieldtype].validator;
 
         if(!fieldvalue){
-            if(schema.key.indexOf(f) < 0)
+            if(schema.key.indexOf(f) < 0 && schema.key[0].indexOf(f) < 0)
                 continue;
             else
                 return callback(build_error('model.save.unsetkey',f));

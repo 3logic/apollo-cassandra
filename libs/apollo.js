@@ -141,7 +141,6 @@ Apollo.prototype = {
                 throw("Tipo di field non riconosciuto, colonna: " + k);
         }
 
-
         if( typeof(model_schema.key[0]) == "string" ){
             if(!(model_schema.key[0] in model_schema.fields)) 
                 throw("La partition key deve essere un nome di colonna");
@@ -152,8 +151,9 @@ Apollo.prototype = {
                         throw("La partition key multipla deve essere un array di nomi di colonna");
             }
         }
-        else 
+        else {
             throw("La partition key deve essere una stringa o un array di nomi di colonna");
+        }
         
         for(var i in model_schema.key){
             if(i>0){
@@ -183,6 +183,12 @@ Apollo.prototype = {
 
         options = options || {};
         options.mismatch_behaviour = options.mismatch_behaviour || 'fail';
+        if(options.mismatch_behaviour !== 'fail' && options.mismatch_behaviour !== 'drop')
+            throw 'Valid option values for "mismatch_behaviour": "fail" , "drop". Got: "'+options.mismatch_behaviour+'"';
+
+        if(typeof model_schema.key[0] === 'string'){
+            model_schema.key[0] = [model_schema.key[0]];
+        }
 
         this.validate_model_schema(model_schema);
 
