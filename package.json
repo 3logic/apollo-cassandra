@@ -1,6 +1,6 @@
 {
   "name": "apollo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A basic ORM for Cassandra",
   "main": "index.js",
   "scripts": {
