@@ -91,11 +91,6 @@ describe('Apollo > ', function(){
         };
 
 
-        it.only('create table query',function(done){
-            var TestModel = ap.add_model("test5", model_test5);
-            TestModel.init(done);
-        });
-
         it('add model', function(){
             var TestModel = ap.get_model("test1", model_test1);
             assert.isFunction(TestModel);
@@ -107,6 +102,7 @@ describe('Apollo > ', function(){
         it('add faulty model (silly type)', function(){
             assert.throws(function(){
                 var TestModel = ap.get_model("test1", faulty_model_test1);
+
             });
         });
 
@@ -155,6 +151,7 @@ describe('Apollo > ', function(){
             
             it('mismatch_behaviour:default(fail)', function(done){
                 var TestModel = ap.get_model("test1", conflict_model);
+
                 TestModel.init(function(err,result){
                     assert.Ok(err);
                     assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');                      
@@ -237,23 +234,23 @@ describe('Apollo > ', function(){
 
         });
 
-        describe('Find > ',function(){
-            var TestModel;
+        // describe('Find > ',function(){
+        //     var TestModel;
 
-            beforeEach(function(done) {
-                TestModel = ap.add_model("test1", model_test1);
-                TestModel.init(done);
-            });
+        //     beforeEach(function(done) {
+        //         TestModel = ap.get_model("test1", model_test1);
+        //         TestModel.init(done);
+        //     });
 
-            it('successful basic save', function(done){
-                var ins = new TestModel({'v1': 500});
-                ins.save(function(err,result){
-                    assert.notOk(err);
-                    done();
-                });
-            });
+        //     it('successful basic save', function(done){
+        //         var ins = new TestModel({'v1': 500});
+        //         ins.save(function(err,result){
+        //             assert.notOk(err);
+        //             done();
+        //         });
+        //     });
 
-        });
+        // });
 
 
         it.skip('pig update', function(done){
