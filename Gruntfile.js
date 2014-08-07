@@ -3,19 +3,20 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
 
-    mochaTest: {
+    mochacov: {
       test: {
         options: {
           reporter: 'spec'
         },
         src: ['test/**/*.js']
-      }
-    },
-    mochacov: {
+      },
       coverage: {
         options: {
-          coveralls: true
-        }
+          coveralls: {
+            repoToken: '0aRlqM9q5jCD6L0Gnjx0sxmNHT5dI23aC'
+          }
+        },
+        src: ['test/**/*.js']
       },
       options: {
         files: 'test/**/*.js'
@@ -48,7 +49,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-mocha-cov');
 
 
-  grunt.registerTask('test', ['mochaTest','mochacov']);
+  grunt.registerTask('test', ['mochacov']);
   grunt.registerTask('default', ['jshint', 'mochaTest', 'jsdoc']);
 
 };
