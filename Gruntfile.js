@@ -20,7 +20,13 @@ module.exports = function(grunt) {
         options: {
           reporter: 'html-cov',
           quiet: true,
-          output: 'coverage.html'
+          output: 'coverage/coverage.html'
+        }
+      },
+      md: {
+        options: {
+          reporter: 'markdown',
+          output: 'coverage/tests_desc.md'
         }
       },
       options: {
