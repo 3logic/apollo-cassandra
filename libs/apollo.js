@@ -1,12 +1,11 @@
 //libreria di cassandra
 
 var cql = require("node-cassandra-cql");
-var check = require('check-types');
 var async = require('async');
 var querystring = require("querystring");
 var util = require("util");
-var BaseModel = require('./base_model').BaseModel;
-var TYPE_MAP = require('./base_model').TYPE_MAP;
+var BaseModel = require('./base_model');
+var TYPE_MAP = require('./cassandra_types');
 
 
 /**
@@ -32,28 +31,8 @@ var Apollo = function(connection, options){
 
 Apollo.prototype = {
 
-    is_integer : function (obj){
-        return check.intNumber(obj);
-    },
-
-    is_boolean : function (obj){
-        return obj === true || obj === false;
-    },
-
-    is_number : function (obj){
-        return check.number(obj);
-    },
-
-    is_string : function (obj){
-        return check.string(obj);
-    },    
-
-    is_datetime : function (obj){
-        return check.date(obj);
-    },
-
     is_tablename : function (obj){
-        return (check.string(obj) && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
+        return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
     },
    
     _generate_model : function(properties){
@@ -113,6 +92,7 @@ Apollo.prototype = {
         });
     },
 
+
     /**
      * Connect your instance of Apollo to Cassandra
      * @param  {Apollo~onConnect} callback Callback on connection result
@@ -131,8 +111,6 @@ Apollo.prototype = {
         }
     },
 
-
-    
 
     /*
         descrittore model:
