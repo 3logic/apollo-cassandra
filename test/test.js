@@ -56,32 +56,43 @@ describe('Apollo > ', function(){
             ap = new Apollo(connection);
 
             // Setup
-            ap.connect(done);
+            ap.connect(function(err){      
+                if(err) return done(err);      
+                var BaseModel = ap.add_model("test1", model_test1);
+                BaseModel._drop_table(done);
+            });
         });
 
-
         var model_test1 = { 
-            fields:{v1:"int",v2:"int"}, 
-            key:["v1"] 
-        };
-
+                fields:{v1:"int",v2:"int",v3:"int"}, 
+                key:["v1"],
+                indexes : ["v2"]
+            };
 
         var model_test2 = { 
-            fields:{v1:"int",v2:"text"}, 
-            key:["v1"] 
-        };
+                fields:{v1:"int",v2:"int",v3:"text"}, 
+                key:["v1"],
+                indexes : ["v2"]
+            };
+
+        var model_test3 = { 
+                fields:{v1:"int",v2:"int",v3:"int"}, 
+                key:["v1"],
+                indexes : ["v3"]
+            };
 
         var faulty_model_test1 = { 
-            fields:{v1:"int",v2:"foo"}, 
-            key:["v1"] 
-        };
+                fields:{v1:"int",v2:"int",v3:"foo"}, 
+                key:["v1"],
+                indexes : ["v2"]
+            };
+
 
         var model_test5 = { 
             fields:{v1:"int",v2:"int",v3:"int",v4:"int",v5:"int"}, 
             key:[["v1","v2"],"v3"],
             indexes:["v5","v4"] 
         };
-
 
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
@@ -107,19 +118,78 @@ describe('Apollo > ', function(){
         });
 
 
-        describe('Schema conflicts on init',function(){
+        // describe('Schema conflicts on init',function(){
+        //     beforeEach(function(done) {
+        //         var TestModel = ap.add_model("test1", model_test1);
+        //         TestModel.init(done);
+        //     });
+
+        //     it('same name, conflicting schema', function(done){
+        //         var TestModel = ap.add_model("test1", model_test2);
+        //         TestModel.init(function(err,result){
+        //             assert.ok(err);
+        //             assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
+        //             done();
+        //         });
+        //     });
+
+        //     it('same name, same schema', function(done){
+        //         var TestModel = ap.add_model("test1", model_test1);
+        //         TestModel.init(function(err,result){
+        //             assert.notOk(err);
+        //             done();
+        //         });
+        //     });
+        // });
+         
+        describe('Schema conflicts on init > ',function(){
+            
             beforeEach(function(done) {
-                var TestModel = ap.add_model("test1", model_test1, {mismatch_behaviour:'fail'});
-                TestModel.init(done);
+                var BaseModel = ap.add_model("test1", model_test1);
+                BaseModel._drop_table(function(err){
+                    if(err) return done(err);
+                    BaseModel.init(done);
+                });
             });
 
-            it('same name, conflicting schema', function(done){
-                var TestModel = ap.add_model("test1", model_test2);
+            var conflict_model = model_test3;
+            
+            it('mismatch_behaviour:default(fail)', function(done){
+                var TestModel = ap.add_model("test1", conflict_model);
+
                 TestModel.init(function(err,result){
                     assert.ok(err);
-                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
+                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');                      
                     done();
                 });
+               
+            });
+            
+            it('mismatch_behaviour:fail', function(done){
+                var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"fail"});
+                TestModel.init(function(err,result){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');                    
+                    done();
+                });
+               
+            });
+            
+            it('mismatch_behaviour:drop', function(done){
+                var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"drop"});
+                TestModel.init(function(err,result){
+                    assert.notOk(err);                    
+                    done();
+                });
+               
+            });
+            
+            it('mismatch_behaviour invalid', function(){
+                assert.throw(
+                    function(){ 
+                        var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"foo"});
+                    }, /mismatch_behaviour.+foo/ 
+                );
             });
 
             it('same name, same schema', function(done){
@@ -129,7 +199,10 @@ describe('Apollo > ', function(){
                     done();
                 });
             });
+
         });
+
+
         
         describe('Save > ',function(){
             var TestModel;
@@ -197,6 +270,35 @@ describe('Apollo > ', function(){
                 });
             });
         });
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     });
 
