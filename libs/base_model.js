@@ -1,6 +1,7 @@
 var util = require('util'),
     build_error = require('./apollo_error.js'),
     cql = require('node-cassandra-cql'),
+    schemer = require('./apollo_schemer');
     async = require('async'),
     lodash = require('lodash');
 
@@ -13,7 +14,10 @@ var util = require('util'),
 var cql_consistencies = cql.types.consistencies;
 
 var TYPE_MAP = require('./cassandra_types');
-
+var check_db_tablename = function (obj){
+    return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
+};
+   
 var noop = function(){};
 
 /**
@@ -93,14 +97,8 @@ BaseModel._create_table = function(callback){
 
         if (db_schema){//controllo se uguali
             
-            var index_sort = function(a,b){
-                return a > b ? 1 : (a < b ? -1 : 0);
-            };
-
-            if(model_schema.indexes)     
-                model_schema.indexes.sort(index_sort);
-            if(db_schema.indexes)     
-                db_schema.indexes.sort(index_sort);
+            schemer.normalize_model_schema(model_schema);     
+            schemer.normalize_model_schema(db_schema);     
 
             if (!lodash.isEqual(model_schema, db_schema)){
                 //console.log('mismatch', model_schema, db_schema);
@@ -249,7 +247,23 @@ BaseModel._execute_table_query = function(query, consistency, callback){
     }
 };
 
+
 /* Static Public ---------------------------------------- */
+
+BaseModel.set_properties = function(properties){
+    var schema = properties.schema,
+        cql = properties.cql,
+        table_name = schema.table_name || properties.name;
+
+    if(!check_db_tablename(table_name))
+        throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
+
+    var qualified_table_name = cql.options.keyspace+'.'+table_name;
+
+    this._properties = properties;
+    this._properties.table_name = table_name;
+    this._properties.qualified_table_name = qualified_table_name;
+};
 
 /**
  * Return true if data related to model is initialized on cassandra

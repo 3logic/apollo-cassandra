@@ -5,8 +5,7 @@ var async = require('async');
 var querystring = require("querystring");
 var util = require("util");
 var BaseModel = require('./base_model');
-var TYPE_MAP = require('./cassandra_types');
-
+var schemer = require('./apollo_schemer');
 
 /**
  * Utilità per cassandra
@@ -28,13 +27,8 @@ var Apollo = function(connection, options){
 };
 
 
-
 Apollo.prototype = {
 
-    is_tablename : function (obj){
-        return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
-    },
-   
     /**
      * Generate a Model
      * @param  {object} properties Properties for the model
@@ -60,7 +54,8 @@ Apollo.prototype = {
                Model[i] = BaseModel[i];
             }
         }
-        Model._properties = properties;
+
+        Model.set_properties(properties);
 
         return Model;
     },
@@ -124,72 +119,12 @@ Apollo.prototype = {
     },
 
 
-    /*
-        descrittore model:
-        {
-            fields : { //obbligatorio
-                column1 : "tipo",
-                column2 : "tipo2",
-                column3 : "tipo3"
-            },
-            key : ["column1","column2"],
-            indexes : ["column1","column3"] 
-        }
-     */
-
-    validate_model_schema: function(model_schema){
-        if(!model_schema)
-            throw("Si deve specificare uno schema del modello");
-
-        if(typeof(model_schema.fields) != "object" || Object.keys(model_schema.fields).length === 0 )
-            throw("Schema deve contenere una mappa fields non vuota");
-        if(!model_schema.key)
-            throw("Si deve specificare la chiave del modello");
-        if(!(model_schema.key instanceof Array))
-            throw("Key deve essere un array di nomi di colonna");
-
-        for( var k in model_schema.fields){
-            if (!(model_schema.fields[k] in TYPE_MAP))
-                throw("Tipo di field non riconosciuto, colonna: " + k);
-        }
-
-        if( typeof(model_schema.key[0]) == "string" ){
-            if(!(model_schema.key[0] in model_schema.fields)) 
-                throw("La partition key deve essere un nome di colonna");
-        }
-        else if(model_schema.key[0] instanceof Array){
-            for(var j in model_schema.key[0]){
-                if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
-                        throw("La partition key multipla deve essere un array di nomi di colonna");
-            }
-        }
-        else {
-            throw("La partition key deve essere una stringa o un array di nomi di colonna");
-        }
-        
-        for(var i in model_schema.key){
-            if(i>0){
-                if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
-                    throw("Key deve essere un array di nomi di colonna");
-            }
-
-        }
-
-        if(model_schema.indexes){
-            if(!(model_schema.indexes instanceof Array))
-                throw("indexes deve essere un array di nomi di colonna");
-            for(var j in model_schema.indexes)
-                if((typeof(model_schema.indexes[j]) != "string") || !(model_schema.indexes[j] in model_schema.fields))
-                    throw("indexes deve essere un array di nomi di colonna");
-        }
-    },
-
     /**
      * Aggiunge un modello a quelli conosciuti
      * @param {string}  model_name         Nome  del modello
      * @param {obj}     model_schema      schema del modello (in formato definito)
      */
-    get_model : function(model_name, model_schema, options) {
+    add_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
             throw("Si deve specificare un nome per il modello");    
 
@@ -198,30 +133,22 @@ Apollo.prototype = {
         if(options.mismatch_behaviour !== 'fail' && options.mismatch_behaviour !== 'drop')
             throw 'Valid option values for "mismatch_behaviour": "fail" , "drop". Got: "'+options.mismatch_behaviour+'"';
 
-        if(typeof model_schema.key[0] === 'string'){
-            model_schema.key[0] = [model_schema.key[0]];
-        }
+        schemer.normalize_model_schema(model_schema);
+        schemer.validate_model_schema(model_schema);
 
-        this.validate_model_schema(model_schema);
-
-        var table_name = model_schema.table_name || model_name;
-        if(!this.is_tablename(table_name))
-            throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
-
-        var qualified_table_name = this._client.options.keyspace+'.'+table_name;
-
-        var properties = {
+        var base_properties = {
             name : model_name,
             schema : model_schema,
-            table_name : table_name,
-            qualified_table_name: qualified_table_name,
             cql : this._client,
             mismatch_behaviour : options.mismatch_behaviour
         };
 
-        return (this._models[model_name] = this._generate_model(properties));
+        return (this._models[model_name] = this._generate_model(base_properties));
     },
 
+    get_model : function(model_name){
+        return this._models[model_name] || null;
+    },
 
     /**
      * Stringa di update da utilizzare in PIG nel formato:
