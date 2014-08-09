@@ -32,7 +32,8 @@ Apollo.prototype = {
     /**
      * Generate a Model
      * @param  {object} properties Properties for the model
-     * @return {Model}            Construcotr for the mdoel
+     * @return {Model}            Construcotr for the model
+     * @private
      */
     _generate_model : function(properties){
 
@@ -63,6 +64,7 @@ Apollo.prototype = {
     /**
       * Ensure specified keyspace exists, try to create it otherwise
       * @param  {Apollo~GenericCallback} callback Called on keyspace assertion
+      * @private
       */
     _assert_keyspace : function(callback){
         var copy_fields = ['hosts'],
@@ -120,9 +122,11 @@ Apollo.prototype = {
 
 
     /**
-     * Aggiunge un modello a quelli conosciuti
-     * @param {string}  model_name         Nome  del modello
-     * @param {obj}     model_schema      schema del modello (in formato definito)
+     * Create a model based on proposed schema
+     * @param {string}  model_name - Name for the model
+     * @param {object}  model_schema - Schema for the model
+     * @param {Apollo~ModelCreationOptions} options - Options for the creation
+     * @return {Model} Model constructor
      */
     add_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
@@ -146,6 +150,11 @@ Apollo.prototype = {
         return (this._models[model_name] = this._generate_model(base_properties));
     },
 
+    /**
+     * Get a previous registered model
+     * @param  {string} model_name - Name used during [add_model]{@link Apollo#add_model}
+     * @return {Model} The required model
+     */
     get_model : function(model_name){
         return this._models[model_name] || null;
     },
@@ -157,6 +166,7 @@ Apollo.prototype = {
      * @param  {string} model_name Nome del modello precedentemente registrato
      * @param  {bool} encode     Indica che se la strigna deve essere in URL encode o meno
      * @return {string}            Strigna per PIg
+     * @ignore
      */
     pig_cql_update_connection : function(model_name, encode, callback){
         if ( !(model_name in this._models) || !this._models[model_name])
@@ -186,6 +196,7 @@ Apollo.prototype = {
      * @param  {string} keyspace Keyspace della tabella
      * @param  {string} table    nome della tabella
      * @return {string}          stringa di connessione
+     * @ignore
      */
     pig_cql_connection : function(keyspace,table){
         var cqlstring = "cql://" + keyspace + "/" + table + "?";       
@@ -226,6 +237,14 @@ module.exports = Apollo;
   * @typedef {Object} Apollo~Configuration
   * @property {Apollo~connection} connection - Configurazione per la connessione client cassandra
   */
+
+/**
+ * Options for the model creation method
+ * @typedef {Object} Apollo~ModelCreationOptions
+ * @property {string} [mismatch_beahaviour='fail'] - Which behaviour should have creation whne a table already exists on Cassandra with the same name of your model and schema differ from proposed one.<br />
+ * Valid options are `fail`, `drop`.<br />
+ * On fail, creation will fail and an error will be raised: this is the default. On drop, existing table will be dropped (use carefully)
+ */
 
  /**
   * Opzioni per la connessione client cassandra

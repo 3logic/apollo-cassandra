@@ -50,8 +50,9 @@ module.exports = function(grunt) {
     },
     jsdoc : {
         dist : {
-            src: ['libs/**/*.js'], 
+            src: ['README.md', 'libs/**/*.js'], 
             options: {
+                  private : false,
                   destination: 'docs',
                   lenient: true,
                   template :  "node_modules/grunt-jsdoc/node_modules/ink-docstrap/template",

@@ -213,7 +213,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-17">line 17</a>
+				 <a href="apollo.js.html#sunlight-1-line-16">line 16</a>
 			</li>
 		</ul>
 	</dd>
@@ -261,7 +261,7 @@
         <dl>
             
 <dt>
-    <h4 class="name" id="_assert_keyspace"><span class="type-signature"></span>_assert_keyspace<span class="signature">(callback)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="add_model"><span class="type-signature"></span>add_model<span class="signature">(model_name, model_schema, options)</span><span class="type-signature"> &rarr; {<a href="Model.html">Model</a>}</span></h4>
     
     
 </dt>
@@ -269,7 +269,7 @@
     
     
     <div class="description">
-        <p>Ensure specified keyspace exists, try to create it otherwise</p>
+        <p>Create a model based on proposed schema</p>
     </div>
     
 
@@ -303,13 +303,13 @@
 
         <tr>
             
-                <td class="name"><code>callback</code></td>
+                <td class="name"><code>model_name</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type"><a href="Apollo.html#GenericCallback">Apollo~GenericCallback</a></span>
+<span class="param-type">string</span>
 
 
             
@@ -319,116 +319,14 @@
 
             
 
-            <td class="description last"><p>Called on keyspace assertion</p></td>
+            <td class="description last"><p>Name for the model</p></td>
         </tr>
 
-	
-	</tbody>
-</table>
-
-    
-    
-    
-<dl class="details">
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source">Source:</dt>
-	<dd class="tag-source">
-		<ul class="dummy">
-			<li>
-				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-72">line 72</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="_generate_model"><span class="type-signature"></span>_generate_model<span class="signature">(properties)</span><span class="type-signature"> &rarr; {<a href="Model.html">Model</a>}</span></h4>
-    
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>Generate a Model</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-
-		<th>Type</th>
-
-		
-
-		
-
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-
-	<tbody>
 	
 
         <tr>
             
-                <td class="name"><code>properties</code></td>
+                <td class="name"><code>model_schema</code></td>
             
 
             <td class="type">
@@ -444,7 +342,30 @@
 
             
 
-            <td class="description last"><p>Properties for the model</p></td>
+            <td class="description last"><p>Schema for the model</p></td>
+        </tr>
+
+	
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="Apollo.html#ModelCreationOptions">Apollo~ModelCreationOptions</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Options for the creation</p></td>
         </tr>
 
 	
@@ -481,7 +402,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-43">line 43</a>
+				 <a href="apollo.js.html#sunlight-1-line-131">line 131</a>
 			</li>
 		</ul>
 	</dd>
@@ -508,7 +429,7 @@
     
             
 <div class="param-desc">
-    <p>Construcotr for the mdoel</p>
+    <p>Model constructor</p>
 </div>
 
 
@@ -629,7 +550,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-266">line 266</a>
+				 <a href="apollo.js.html#sunlight-1-line-210">line 210</a>
 			</li>
 		</ul>
 	</dd>
@@ -754,7 +675,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-112">line 112</a>
+				 <a href="apollo.js.html#sunlight-1-line-109">line 109</a>
 			</li>
 		</ul>
 	</dd>
@@ -784,7 +705,7 @@
         
             
 <dt>
-    <h4 class="name" id="get_model"><span class="type-signature"></span>get_model<span class="signature">(model_name, model_schema)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="get_model"><span class="type-signature"></span>get_model<span class="signature">(model_name)</span><span class="type-signature"> &rarr; {<a href="Model.html">Model</a>}</span></h4>
     
     
 </dt>
@@ -792,7 +713,7 @@
     
     
     <div class="description">
-        <p>Aggiunge un modello a quelli conosciuti</p>
+        <p>Get a previous registered model</p>
     </div>
     
 
@@ -842,30 +763,7 @@
 
             
 
-            <td class="description last"><p>Nome  del modello</p></td>
-        </tr>
-
-	
-
-        <tr>
-            
-                <td class="name"><code>model_schema</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">obj</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>schema del modello (in formato definito)</p></td>
+            <td class="description last"><p>Name used during <a href="Apollo.html#add_model">add_model</a></p></td>
         </tr>
 
 	
@@ -902,155 +800,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-192">line 192</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="pig_cql_connection"><span class="type-signature"></span>pig_cql_connection<span class="signature">(keyspace, table)</span><span class="type-signature"> &rarr; {string}</span></h4>
-    
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>Connessione per lettura da cassandra in pig</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-
-		<th>Type</th>
-
-		
-
-		
-
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-
-	<tbody>
-	
-
-        <tr>
-            
-                <td class="name"><code>keyspace</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Keyspace della tabella</p></td>
-        </tr>
-
-	
-
-        <tr>
-            
-                <td class="name"><code>table</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>nome della tabella</p></td>
-        </tr>
-
-	
-	</tbody>
-</table>
-
-    
-    
-    
-<dl class="details">
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source">Source:</dt>
-	<dd class="tag-source">
-		<ul class="dummy">
-			<li>
-				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-257">line 257</a>
+				 <a href="apollo.js.html#sunlight-1-line-158">line 158</a>
 			</li>
 		</ul>
 	</dd>
@@ -1077,7 +827,7 @@
     
             
 <div class="param-desc">
-    <p>stringa di connessione</p>
+    <p>The required model</p>
 </div>
 
 
@@ -1088,179 +838,7 @@
 	</dt>
 	<dd>
 		
-<span class="param-type">string</span>
-
-
-	</dd>
-</dl>
-
-
-        
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="pig_cql_update_connection"><span class="type-signature"></span>pig_cql_update_connection<span class="signature">(model_name, encode)</span><span class="type-signature"> &rarr; {string}</span></h4>
-    
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>Stringa di update da utilizzare in PIG nel formato:
-‘cql://myschema/example?output_query=update example set value1 @ #,value2 @ #’</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-
-		<th>Type</th>
-
-		
-
-		
-
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-
-	<tbody>
-	
-
-        <tr>
-            
-                <td class="name"><code>model_name</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Nome del modello precedentemente registrato</p></td>
-        </tr>
-
-	
-
-        <tr>
-            
-                <td class="name"><code>encode</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">bool</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Indica che se la strigna deve essere in URL encode o meno</p></td>
-        </tr>
-
-	
-	</tbody>
-</table>
-
-    
-    
-    
-<dl class="details">
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source">Source:</dt>
-	<dd class="tag-source">
-		<ul class="dummy">
-			<li>
-				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-228">line 228</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    <h5>Returns:</h5>
-    
-            
-<div class="param-desc">
-    <p>Strigna per PIg</p>
-</div>
-
-
-
-<dl>
-	<dt>
-		Type
-	</dt>
-	<dd>
-		
-<span class="param-type">string</span>
+<span class="param-type"><a href="Model.html">Model</a></span>
 
 
 	</dd>
@@ -1384,7 +962,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-277">line 277</a>
+				 <a href="apollo.js.html#sunlight-1-line-221">line 221</a>
 			</li>
 		</ul>
 	</dd>
@@ -1507,7 +1085,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-279">line 279</a>
+				 <a href="apollo.js.html#sunlight-1-line-223">line 223</a>
 			</li>
 		</ul>
 	</dd>
@@ -1749,7 +1327,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-281">line 281</a>
+				 <a href="apollo.js.html#sunlight-1-line-227">line 227</a>
 			</li>
 		</ul>
 	</dd>
@@ -1838,7 +1416,7 @@
 
             
 
-            <td class="description last"><p>error type, as enumerated in AERROR_TYPES</p></td>
+            <td class="description last"><p>error type, as enumerated in <a href="global.html#AERROR_TYPES">AERROR_TYPES</a></p></td>
         </tr>
 
 	
@@ -2010,7 +1588,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-273">line 273</a>
+				 <a href="apollo.js.html#sunlight-1-line-217">line 217</a>
 			</li>
 		</ul>
 	</dd>
@@ -2034,6 +1612,149 @@
     
     
     
+    
+</dd>
+
+            
+                
+<dt class="name" id="ModelCreationOptions">
+    <h4>ModelCreationOptions</h4>
+
+    
+</dt>
+<dd>
+    
+    <div class="description">
+        <p>Options for the model creation method</p>
+    </div>
+    
+
+    
+        <h5>Type:</h5>
+        <ul>
+            <li>
+                
+<span class="param-type">Object</span>
+
+
+            </li>
+        </ul>
+    
+
+    
+<dl class="details">
+	
+
+	<h5 class="subsection-title">Properties:</h5>
+
+	<dl>
+
+<table class="props table table-striped">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+
+		<th>Type</th>
+
+		
+		<th>Argument</th>
+		
+
+		
+		<th>Default</th>
+		
+
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+
+	<tbody>
+	
+
+        <tr>
+            
+                <td class="name"><code>mismatch_beahaviour</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'fail'
+                
+                </td>
+            
+
+            <td class="description last"><p>Which behaviour should have creation whne a table already exists on Cassandra with the same name of your model and schema differ from proposed one.<br />
+Valid options are <code>fail</code>, <code>drop</code>.<br />
+On fail, creation will fail and an error will be raised: this is the default. On drop, existing table will be dropped (use carefully)</p></td>
+        </tr>
+
+	
+	</tbody>
+</table>
+</dl>
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="apollo.js.html">apollo.js</a>,
+				 <a href="apollo.js.html#sunlight-1-line-225">line 225</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
     
 </dd>
 
@@ -2135,7 +1856,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-275">line 275</a>
+				 <a href="apollo.js.html#sunlight-1-line-219">line 219</a>
 			</li>
 		</ul>
 	</dd>
@@ -2186,7 +1907,7 @@
 					
 		<span class="jsdoc-message">
 		Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a>
-		on Thu Aug 7th 2014 using the <a
+		on Sat Aug 9th 2014 using the <a
 			href="https://github.com/terryweiss/docstrap">DocStrap template</a>.
 		</span>
 				</footer>

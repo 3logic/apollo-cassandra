@@ -1,4 +1,4 @@
-apollo
+Apollo
 ======
 
 [![Build Status](https://travis-ci.org/3logic/apollo.svg?branch=master)](https://travis-ci.org/3logic/apollo)
