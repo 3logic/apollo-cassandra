@@ -151,7 +151,8 @@ Apollo.prototype = {
             schema : model_schema,
             cql : this._client,
             define_connection : this._define_connection,
-            mismatch_behaviour : options.mismatch_behaviour
+            mismatch_behaviour : options.mismatch_behaviour,
+            get_constructor : this.get_model.bind(this,model_name)
         };
 
         return (this._models[model_name] = this._generate_model(base_properties));

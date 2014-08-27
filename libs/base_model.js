@@ -1,7 +1,7 @@
 var util = require('util'),
     build_error = require('./apollo_error.js'),
     cql = require('node-cassandra-cql'),
-    schemer = require('./apollo_schemer');
+    schemer = require('./apollo_schemer'),
     async = require('async'),
     lodash = require('lodash');
 
@@ -76,7 +76,7 @@ BaseModel._execute_definition_query = function(query, options, consistency, call
     conn.open(function(){
          conn.execute(query, options, consistency, callback);
     });
-}
+};
 
 
 /**
@@ -301,7 +301,7 @@ BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
         return ("textAsBlob(\'" + fieldvalue.toString() + "\')");
     else
         return fieldvalue;
-}
+};
 
 
 BaseModel._create_find_query = function(query_ob, options){
@@ -312,28 +312,29 @@ BaseModel._create_find_query = function(query_ob, options){
     for(var k in query_ob){
         var query_item = query_ob[k];
         if(k.toLowerCase() === '$orderby'){
-            if(!(query_item instanceof Array))
-                query_item = [query_item];
-            for(var oi in query_item){
-                var order_item = query_item[oi];
-
-                if(typeof order_item == 'string'){
-                    order_item = {};
-                    order_item[query_item[oi]] = '$asc';
-                }
-
-                var order_item_keys = Object.keys(order_item);
-                if(order_item_keys.length > 1)
-                    throw(build_error('model.find.multiorder'));
-
-                var cql_orderdir = {'$asc':'ASC', '$desc':'DESC'};
-
-                if(order_item[order_item_keys[0]].toLowerCase() in cql_orderdir){
+            if(!(query_item instanceof Object)){
+                throw(build_error('model.find.invalidorder'));
+            }
+            var order_item_keys = Object.keys(query_item);
+            if(order_item_keys.length > 1)
+                throw(build_error('model.find.multiorder'));
+            
+            var cql_orderdir = {'$asc':'ASC', '$desc':'DESC'};
+            if(order_item_keys[0].toLowerCase() in cql_orderdir){
+                
+                var order_fields = query_item[order_item_keys[0]];
+                
+                if(!(order_fields instanceof Array))
+                    order_fields = [order_fields];
+                
+                for(var i in order_fields){
                     order_keys.push(util.format(
                         '%s %s',
-                        order_item_keys[0],cql_orderdir[order_item[order_item_keys[0]].toLowerCase()]
+                        order_fields[i], cql_orderdir[order_item_keys[0]]
                     ));
                 }
+            }else{
+                throw(build_error('model.find.invalidordertype', order_item[order_item_keys[0]]));
             }
         }
         else if(k.toLowerCase() === '$limit'){
@@ -379,17 +380,16 @@ BaseModel._create_find_query = function(query_ob, options){
             }
         }
     }
-
+    var where = query_relations.length > 0 ? util.format('WHERE %s',query_relations.join(' AND ')) : '';
     var query = util.format(
-        'SELECT * FROM "%s" WHERE %s %s %s ALLOW FILTERING;',
+        'SELECT * FROM "%s" %s %s %s ALLOW FILTERING;',
         this._properties.table_name,
-        query_relations.join(' AND '), 
+        where, 
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
-    
     return query;
-}
+};
 
 
 /* Static Public ---------------------------------------- */
@@ -455,32 +455,48 @@ BaseModel.execute_query = function(query, consistency, callback){
 /**
  * Execute a search on Cassandra for row of this Model
  * @param  {object}   query_ob The query objcet
- * @param  {object}   options  Option for ths query
+ * @param  {BaseModel~find_options}   [options]  Option for this find query
  * @param  {BaseModel~QueryExecution} callback Data retrieved
  */
 BaseModel.find = function(query_ob, options, callback){
     if(arguments.length == 2){
         callback = options;
-        options = undefined;
+        options = {};
     }
     if(!callback)
         throw 'Callback needed!';
 
+    var defaults = {
+        raw : false
+    };
+
+    options = lodash.defaults(options, defaults);
+
     var query;
     try{
-        query = this._create_find_query(query_ob, options)
+        query = this._create_find_query(query_ob, options);
     }
     catch(e){
         return callback(e);
     }
 
-    //console.log('find query -> ',query);
-
-    this._execute_table_query(query, CONSISTENCY_FIND, function(err,result){
+    this._execute_table_query(query, CONSISTENCY_FIND, function(err,results){
         if(err) return callback(build_error('model.find.dberror',err));
-        //console.log(result);
-        callback();
-    });
+        if(!options.raw){
+            var ModelConstructor = this._properties.get_constructor();
+            results = results.rows.map(function(res){
+                delete(res.columns);
+                return new ModelConstructor(res);
+            });
+            callback(null,results);
+        }else{
+           results = results.rows.map(function(res){
+                delete(res.columns);
+                return res;
+            });
+            callback(null,results); 
+        }
+    }.bind(this));
 
 };
 
@@ -556,3 +572,9 @@ module.exports = BaseModel;
  * @param {object} err - Eventually the error
  * @param {object} result - The data retrieved
  */
+
+/**
+  * Options for find operation
+  * @typedef {Object} BaseModel~find_options
+  * @property {boolean} [raw=false] - Returns raw result instead of instances of your model
+*/

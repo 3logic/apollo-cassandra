@@ -38,6 +38,12 @@ var AERROR_TYPES = {
 	'model.find.multiorder': {
 		msg: 'Invalid order by: only one clause per object'
 	},
+	'model.find.invalidordertype': {
+		msg: 'Invalid order. Allowed :$asc, $desc. Got "%s"'
+	},
+	'model.find.invalidorder': {
+		msg: 'Invalid order. Must be an object'
+	},
 	'model.find.limittype': {
 		msg: 'Invalid limit value'
 	},
