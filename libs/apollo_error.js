@@ -64,11 +64,11 @@ var ERR_NAME_PREFIX = 'apollo';
 /**
  * Builds a standardized Error object
  * 
- * @param {String} error type;
- * @varargs {String} parameters to fill in the error message template
- * @return {Apollo~Error} the built error object
+ * @param {string} [error_type='unspecified'] - Error type according to {@link AERROR_TYPES}
+ * @param {...string} [params] - Parameters to fill in the error message template
+ * @return {Apollo~Error} The built error object
  */
-var build_error = function(){
+var build_error = function(error_type, params){
 	var argsarray = Array.prototype.slice.call(arguments);
 	var name = argsarray.length ? argsarray.shift() : '_none_given_';
 	
@@ -89,7 +89,7 @@ var build_error = function(){
   * Apollo standard Error object
   * 
   * @typedef {Object} Apollo~Error
-  * @property {String} type - error type, as enumerated in AERROR_TYPES
+  * @property {String} type - error type, as enumerated in {@link AERROR_TYPES}
   * @property {String} msg  - error message (with replaced parameters if any)
   */
 
