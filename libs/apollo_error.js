@@ -50,6 +50,9 @@ var AERROR_TYPES = {
 	'model.find.dberror': {
 		msg: 'Error during find query on DB -> %s'
 	},
+	'model.delete.dberror': {
+		msg: 'Error during delete query on DB -> %s'
+	},
 	'model.save.unsetkey': {
 		msg: 'Key Field: %s must be set'
 	},

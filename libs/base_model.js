@@ -7,7 +7,8 @@ var util = require('util'),
 
 var CONSISTENCY_FIND   = 'one',
     CONSISTENCY_SAVE   = 'one',
-    CONSISTENCY_DEFINE = 'one';
+    CONSISTENCY_DEFINE = 'one',
+    CONSISTENCY_DELETE = 'one';
 
 /**
  * Consistency levels
@@ -303,6 +304,49 @@ BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
         return fieldvalue;
 };
 
+BaseModel._create_where_clause = function(query_ob){
+    var query_relations = [];
+    for(var k in query_ob){
+        if( k.indexOf('$') === 0 ){
+            continue;
+        }
+        var where_object = query_ob[k];
+        //Array of operators
+        if( !(where_object instanceof Array))
+            where_object = [where_object];
+        for (var fk in where_object){
+            var field_relation = where_object[fk];
+            if(typeof field_relation == 'number' || typeof field_relation == 'string' || typeof field_relation == 'boolean' )
+                field_relation = {'$eq': field_relation};
+            else if(typeof field_relation != 'object')
+                throw(build_error('model.find.invalidrelob'));
+
+            var rel_keys = Object.keys(field_relation);
+            if(rel_keys.length > 1)
+                throw(build_error('model.find.multiop'));
+            
+            var cql_ops = {'$eq':'=', '$gt':'>', '$lt':'<', '$gte':'>=', '$lte':'<=', '$in':'IN'};
+            
+            var first_key = rel_keys[0],
+                first_value = field_relation[first_key];
+            if(first_key.toLowerCase() in cql_ops){
+                first_key = first_key.toLowerCase();
+                var op = cql_ops[first_key];
+                
+                if(first_key == '$in' && !(first_value instanceof Array))
+                    throw(build_error('model.find.invalidinset'));
+                query_relations.push( util.format(
+                    '%s %s %s',
+                    k,op,this._get_db_value_expression(k,first_value)
+                ));
+            }
+            else {
+                throw(build_error('model.find.invalidop',first_key));
+            }
+        }
+    }
+    return query_relations.length > 0 ? util.format('WHERE %s',query_relations.join(' AND ')) : '';
+};
 
 BaseModel._create_find_query = function(query_ob, options){
     var query_relations = [],
@@ -342,45 +386,8 @@ BaseModel._create_find_query = function(query_ob, options){
                 throw(build_error('model.find.limittype'));
             limit = query_item;
         }
-        else {
-            if(!(query_item instanceof Array))
-                query_item = [query_item];
-            for (var fk in query_item){
-                var field_relation = query_item[fk];
-                if(typeof field_relation == 'number' || typeof field_relation == 'string' || typeof field_relation == 'boolean' )
-                    field_relation = {'$eq': field_relation};
-                else if(typeof field_relation != 'object')
-                    throw(build_error('model.find.invalidrelob'));
-
-                var rel_keys = Object.keys(field_relation);
-                if(rel_keys.length > 1)
-                    throw(build_error('model.find.multiop'));
-                
-                var cql_ops = {'$eq':'=', '$gt':'>', '$lt':'<', '$gte':'>=', '$lte':'<=', '$in':'IN'};
-                
-                var first_key = rel_keys[0],
-                    first_value = field_relation[first_key];
-
-                if(first_key.toLowerCase() in cql_ops){
-
-                    op = cql_ops[first_key.toLowerCase()];
-
-                    if(first_key.toLowerCase() == '$in' && !(first_value instanceof Array))
-                        throw(build_error('model.find.invalidinset'));
-
-                    query_relations.push( util.format(
-                        '%s %s %s',
-                        k,op,this._get_db_value_expression(k,first_value)
-                    ));
-                }
-                else {
-                    throw(build_error('model.find.invalidop',first_key));
-                }
-
-            }
-        }
     }
-    var where = query_relations.length > 0 ? util.format('WHERE %s',query_relations.join(' AND ')) : '';
+    var where = this._create_where_clause(query_ob);
     var query = util.format(
         'SELECT * FROM "%s" %s %s %s ALLOW FILTERING;',
         this._properties.table_name,
@@ -500,6 +507,40 @@ BaseModel.find = function(query_ob, options, callback){
 
 };
 
+/**
+ * Delete entry on database
+ * @param  {object}   query_ob The query object for deletion
+ * @param  {BaseModel~delete_options}   [options]  Option for this delete query
+ * @param  {BaseModel~GenericCallback} callback Data retrieved
+ */
+BaseModel.delete = function(query_ob, options, callback){
+    if(arguments.length == 2){
+        callback = options;
+        options = {};
+    }
+    if(!callback)
+        throw 'Callback needed!';
+
+    var defaults = {};
+
+    options = lodash.defaults(options, defaults);
+
+    var query = 'DELETE FROM %s %s',
+        where = '';
+    try{
+        where = this._create_where_clause(query_ob, options);
+    }
+    catch(e){
+        return callback(e);
+    }
+    query = util.format(query, this._properties.table_name, where);
+    this._execute_table_query(query, CONSISTENCY_DELETE, function(err,results){
+        if(err) return callback(build_error('model.find.dberror',err));
+        callback();
+    });
+
+};
+
 
 /* Instance Public --------------------------------------------- */
 
@@ -549,6 +590,25 @@ BaseModel.prototype.save = function(options, callback){
     );
     
     this.constructor._execute_table_query(query,CONSISTENCY_SAVE,callback);
+};
+
+/**
+ * Delete this entry on database
+ * @param  {BaseModel~delete_options}   [options]  Option for this delete query
+ * @param  {BaseModel~GenericCallback} callback Data retrieved
+ */
+BaseModel.prototype.delete = function(options, callback){
+    if(arguments.length == 1){
+        callback = options;
+        options = {};
+    }
+    var schema = this.constructor._properties.schema;
+    var delete_query = {};
+
+    for(var i in schema.key){
+        delete_query[schema.key[i]] = this[schema.key[i]];
+    }
+    this.constructor.delete(delete_query, options, callback);
 };
 
 module.exports = BaseModel;

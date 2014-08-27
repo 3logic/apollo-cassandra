@@ -387,6 +387,42 @@ describe('Apollo > ', function(){
 
         });
 
+        describe('Delete > ',function(){
+            var TestModel;
+
+            beforeEach(function(done) {
+                TestModel = ap.add_model("test1", model_test1);
+                TestModel.init(function(){
+                    var ins = new TestModel({'v1': 500});
+                    ins.save(done);
+                });
+            });
+
+            it('successful static delete', function(done){
+                TestModel.delete({'v1': 500}, function(err){
+                    assert.notOk(err);
+                    TestModel.find({'v1': 500}, function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 0);
+                        done();
+                    });
+                });
+            });
+
+            it('successful instance delete', function(done){
+                var ins = new TestModel({'v1': 500});
+                ins.delete(function(err){
+                    assert.notOk(err);
+                    TestModel.find({'v1': 500}, function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 0);
+                        done();
+                    });
+                });
+            });
+
+        });
+
 
         it.skip('pig update', function(done){
             ap.add_model("test1", model_test1, true, function(err,data){
