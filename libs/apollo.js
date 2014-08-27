@@ -5,8 +5,8 @@ var async = require('async');
 var querystring = require("querystring");
 var util = require("util");
 var BaseModel = require('./base_model');
-var TYPE_MAP = require('./cassandra_types');
-
+var schemer = require('./apollo_schemer');
+var lodash = require("lodash");
 
 /**
  * Utilità per cassandra
@@ -28,17 +28,13 @@ var Apollo = function(connection, options){
 };
 
 
-
 Apollo.prototype = {
 
-    is_tablename : function (obj){
-        return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
-    },
-   
     /**
      * Generate a Model
      * @param  {object} properties Properties for the model
-     * @return {Model}            Construcotr for the mdoel
+     * @return {Model}            Construcotr for the model
+     * @private
      */
     _generate_model : function(properties){
 
@@ -60,7 +56,8 @@ Apollo.prototype = {
                Model[i] = BaseModel[i];
             }
         }
-        Model._properties = properties;
+
+        Model.set_properties(properties);
 
         return Model;
     },
@@ -68,6 +65,7 @@ Apollo.prototype = {
     /**
       * Ensure specified keyspace exists, try to create it otherwise
       * @param  {Apollo~GenericCallback} callback Called on keyspace assertion
+      * @private
       */
     _assert_keyspace : function(callback){
         var copy_fields = ['hosts'],
@@ -113,6 +111,11 @@ Apollo.prototype = {
         var on_keyspace = function(err){
             if(err){ return callback(err);}
             this._client = new cql.Client(this._connection);
+
+            var options = lodash.clone(this._connection);
+            options.host = options.hosts[0];
+            this._define_connection = new cql.Connection(options);
+            
             callback(null, this);
         };
 
@@ -124,72 +127,14 @@ Apollo.prototype = {
     },
 
 
-    /*
-        descrittore model:
-        {
-            fields : { //obbligatorio
-                column1 : "tipo",
-                column2 : "tipo2",
-                column3 : "tipo3"
-            },
-            key : ["column1","column2"],
-            indexes : ["column1","column3"] 
-        }
-     */
-
-    validate_model_schema: function(model_schema){
-        if(!model_schema)
-            throw("Si deve specificare uno schema del modello");
-
-        if(typeof(model_schema.fields) != "object" || Object.keys(model_schema.fields).length === 0 )
-            throw("Schema deve contenere una mappa fields non vuota");
-        if(!model_schema.key)
-            throw("Si deve specificare la chiave del modello");
-        if(!(model_schema.key instanceof Array))
-            throw("Key deve essere un array di nomi di colonna");
-
-        for( var k in model_schema.fields){
-            if (!(model_schema.fields[k] in TYPE_MAP))
-                throw("Tipo di field non riconosciuto, colonna: " + k);
-        }
-
-        if( typeof(model_schema.key[0]) == "string" ){
-            if(!(model_schema.key[0] in model_schema.fields)) 
-                throw("La partition key deve essere un nome di colonna");
-        }
-        else if(model_schema.key[0] instanceof Array){
-            for(var j in model_schema.key[0]){
-                if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
-                        throw("La partition key multipla deve essere un array di nomi di colonna");
-            }
-        }
-        else {
-            throw("La partition key deve essere una stringa o un array di nomi di colonna");
-        }
-        
-        for(var i in model_schema.key){
-            if(i>0){
-                if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
-                    throw("Key deve essere un array di nomi di colonna");
-            }
-
-        }
-
-        if(model_schema.indexes){
-            if(!(model_schema.indexes instanceof Array))
-                throw("indexes deve essere un array di nomi di colonna");
-            for(var j in model_schema.indexes)
-                if((typeof(model_schema.indexes[j]) != "string") || !(model_schema.indexes[j] in model_schema.fields))
-                    throw("indexes deve essere un array di nomi di colonna");
-        }
-    },
-
     /**
-     * Aggiunge un modello a quelli conosciuti
-     * @param {string}  model_name         Nome  del modello
-     * @param {obj}     model_schema      schema del modello (in formato definito)
+     * Create a model based on proposed schema
+     * @param {string}  model_name - Name for the model
+     * @param {object}  model_schema - Schema for the model
+     * @param {Apollo~ModelCreationOptions} options - Options for the creation
+     * @return {Model} Model constructor
      */
-    get_model : function(model_name, model_schema, options) {
+    add_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
             throw("Si deve specificare un nome per il modello");    
 
@@ -198,30 +143,28 @@ Apollo.prototype = {
         if(options.mismatch_behaviour !== 'fail' && options.mismatch_behaviour !== 'drop')
             throw 'Valid option values for "mismatch_behaviour": "fail" , "drop". Got: "'+options.mismatch_behaviour+'"';
 
-        if(typeof model_schema.key[0] === 'string'){
-            model_schema.key[0] = [model_schema.key[0]];
-        }
+        schemer.normalize_model_schema(model_schema);
+        schemer.validate_model_schema(model_schema);
 
-        this.validate_model_schema(model_schema);
-
-        var table_name = model_schema.table_name || model_name;
-        if(!this.is_tablename(table_name))
-            throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
-
-        var qualified_table_name = this._client.options.keyspace+'.'+table_name;
-
-        var properties = {
+        var base_properties = {
             name : model_name,
             schema : model_schema,
-            table_name : table_name,
-            qualified_table_name: qualified_table_name,
             cql : this._client,
+            define_connection : this._define_connection,
             mismatch_behaviour : options.mismatch_behaviour
         };
 
-        return (this._models[model_name] = this._generate_model(properties));
+        return (this._models[model_name] = this._generate_model(base_properties));
     },
 
+    /**
+     * Get a previous registered model
+     * @param  {string} model_name - Name used during [add_model]{@link Apollo#add_model}
+     * @return {Model} The required model
+     */
+    get_model : function(model_name){
+        return this._models[model_name] || null;
+    },
 
     /**
      * Stringa di update da utilizzare in PIG nel formato:
@@ -230,6 +173,7 @@ Apollo.prototype = {
      * @param  {string} model_name Nome del modello precedentemente registrato
      * @param  {bool} encode     Indica che se la strigna deve essere in URL encode o meno
      * @return {string}            Strigna per PIg
+     * @ignore
      */
     pig_cql_update_connection : function(model_name, encode, callback){
         if ( !(model_name in this._models) || !this._models[model_name])
@@ -259,6 +203,7 @@ Apollo.prototype = {
      * @param  {string} keyspace Keyspace della tabella
      * @param  {string} table    nome della tabella
      * @return {string}          stringa di connessione
+     * @ignore
      */
     pig_cql_connection : function(keyspace,table){
         var cqlstring = "cql://" + keyspace + "/" + table + "?";       
@@ -299,6 +244,14 @@ module.exports = Apollo;
   * @typedef {Object} Apollo~Configuration
   * @property {Apollo~connection} connection - Configurazione per la connessione client cassandra
   */
+
+/**
+ * Options for the model creation method
+ * @typedef {Object} Apollo~ModelCreationOptions
+ * @property {string} [mismatch_beahaviour='fail'] - Which behaviour should have creation whne a table already exists on Cassandra with the same name of your model and schema differ from proposed one.<br />
+ * Valid options are `fail`, `drop`.<br />
+ * On fail, creation will fail and an error will be raised: this is the default. On drop, existing table will be dropped (use carefully)
+ */
 
  /**
   * Opzioni per la connessione client cassandra

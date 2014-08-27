@@ -9,7 +9,7 @@ var util = require('util');
  */
 var AERROR_TYPES = {
 	'unspecified': {
-		msg: "Unspecified Apollo error ->"
+		msg: 'Unspecified Apollo error ->'
 	},
 	'model.tablecreation.dbschemaquery': {
 		msg: 'Error while retrieveing Schema of DB Table "%s"'
@@ -18,19 +18,37 @@ var AERROR_TYPES = {
 		msg: 'Given Schema does not match existing DB Table "%s"'
 	},
 	'model.tablecreation.dbdrop': {
-		msg: "Error during drop of DB Table -> %s"
+		msg: 'Error during drop of DB Table -> %s'
 	},
 	'model.tablecreation.dbcreate': {
-		msg: "Error during creation of DB Table -> %s"
+		msg: 'Error during creation of DB Table -> %s'
 	},
 	'model.tablecreation.dbindex': {
-		msg: "Error during creation of index on DB Table -> %s"
+		msg: 'Error during creation of index on DB Table -> %s'
+	},
+	'model.find.invalidrelob': {
+		msg: 'Invalid field relation object'
+	},
+	'model.find.multiop': {
+		msg: 'Invalid field relation: only one operator allowed'
+	},
+	'model.find.invalidop': {
+		msg: 'Invalid field relation: unknown operator: "%s"'
+	},
+	'model.find.multiorder': {
+		msg: 'Invalid order by: only one clause per object'
+	},
+	'model.find.limittype': {
+		msg: 'Invalid limit value'
+	},
+	'model.find.dberror': {
+		msg: 'Error during find query on DB -> %s'
 	},
 	'model.save.unsetkey': {
-		msg: "Key Field: %s must be set"
+		msg: 'Key Field: %s must be set'
 	},
 	'model.save.invalidvalue': {
-		msg: "Invalid Value: \"%s\" for Field: %s (Type: %s)"
+		msg: 'Invalid Value: "%s" for Field: %s (Type: %s)'
 	}
 };
 
@@ -46,11 +64,11 @@ var ERR_NAME_PREFIX = 'apollo';
 /**
  * Builds a standardized Error object
  * 
- * @param {String} error type;
- * @varargs {String} parameters to fill in the error message template
- * @return {Apollo~Error} the built error object
+ * @param {string} [error_type='unspecified'] - Error type according to {@link AERROR_TYPES}
+ * @param {...string} [params] - Parameters to fill in the error message template
+ * @return {Apollo~Error} The built error object
  */
-var build_error = function(){
+var build_error = function(error_type, params){
 	var argsarray = Array.prototype.slice.call(arguments);
 	var name = argsarray.length ? argsarray.shift() : '_none_given_';
 	
@@ -71,7 +89,7 @@ var build_error = function(){
   * Apollo standard Error object
   * 
   * @typedef {Object} Apollo~Error
-  * @property {String} type - error type, as enumerated in AERROR_TYPES
+  * @property {String} type - error type, as enumerated in {@link AERROR_TYPES}
   * @property {String} msg  - error message (with replaced parameters if any)
   */
 
