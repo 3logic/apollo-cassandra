@@ -1,5 +1,6 @@
 var chai = require('chai');
 var assert = chai.assert;
+var async = require('async');
 var Apollo = require(__dirname +'/../libs/apollo');
 
 
@@ -89,9 +90,9 @@ describe('Apollo > ', function(){
 
 
         var model_test5 = { 
-            fields:{v1:"int",v2:"int",v3:"int",v4:"int",v5:"int"}, 
+            fields:{v1:"int",v2:"int",v3:"int",v4:"text",v5:"boolean"}, 
             key:[["v1","v2"],"v3"],
-            indexes:["v5","v4"] 
+            indexes:["v4"] 
         };
 
         it('add model', function(){
@@ -117,30 +118,6 @@ describe('Apollo > ', function(){
             assert.property(ins,'save');
         });
 
-
-        // describe('Schema conflicts on init',function(){
-        //     beforeEach(function(done) {
-        //         var TestModel = ap.add_model("test1", model_test1);
-        //         TestModel.init(done);
-        //     });
-
-        //     it('same name, conflicting schema', function(done){
-        //         var TestModel = ap.add_model("test1", model_test2);
-        //         TestModel.init(function(err,result){
-        //             assert.ok(err);
-        //             assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
-        //             done();
-        //         });
-        //     });
-
-        //     it('same name, same schema', function(done){
-        //         var TestModel = ap.add_model("test1", model_test1);
-        //         TestModel.init(function(err,result){
-        //             assert.notOk(err);
-        //             done();
-        //         });
-        //     });
-        // });
          
         describe('Schema conflicts on init > ',function(){
             
@@ -240,23 +217,101 @@ describe('Apollo > ', function(){
 
         });
 
-        // describe('Find > ',function(){
-        //     var TestModel;
+        describe.only('Find > ',function(){
+            var TestModel;
 
-        //     beforeEach(function(done) {
-        //         TestModel = ap.add_model("test1", model_test1);
-        //         TestModel.init(done);
-        //     });
+            beforeEach(function(done) {
+                this.timeout(15000);
 
-        //     it('successful basic save', function(done){
-        //         var ins = new TestModel({'v1': 500});
-        //         ins.save(function(err,result){
-        //             assert.notOk(err);
-        //             done();
-        //         });
-        //     });
+                TestModel = ap.add_model("test_find", model_test5, {'mismatch_behaviour':'drop'});
+                TestModel.init(function(err,result){
 
-        // });
+                    if(err) return done(err);
+                    var ins = new TestModel();
+                    
+                    //console.log(ins);
+
+                    async.series([
+                        function(callback){
+                            ins.v1 = 1;
+                            ins.v2 = 2;
+                            ins.v3 = 3;
+                            ins.v4 = 'foo';
+                            ins.v5 = true;
+                            ins.save(callback);
+                        },
+                        // function(callback){
+                        //     ins.v1 = 1;
+                        //     ins.v2 = 2;
+                        //     ins.v3 = 3;
+                        //     ins.v4 = 'foo';
+                        //     ins.v5 = true;
+                        //     ins.save(callback);
+                        // },
+                        function(callback){
+                            ins.v1 = 11;
+                            ins.v2 = 12;
+                            ins.v3 = 13;
+                            ins.v4 = 'baz';
+                            ins.v5 = true;
+                            ins.save(callback);
+                        },
+                        function(callback){
+                            ins.v1 = 21;
+                            ins.v2 = 22;
+                            ins.v3 = 23;
+                            ins.v4 = 'bar';
+                            ins.v5 = false;
+                            ins.save(callback);
+                        }
+
+                    ],done)
+                });
+                
+            });
+
+            it('basic find', function(done){
+                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},done);
+            });
+
+            // it('different operators find', function(done){
+            //     TestModel.find({'v1':{'$gt':1}, 'v4':{'$in':['foo','bar']}, 'v5':true},done);
+            // });
+
+            // it('different operators find', function(done){
+            //     TestModel.find({'v1':{'$gt':1}, 'v4':'foo', 'v5':true, '$orderby':[{'v1':'$DeSC'}, {'v2':'$asc'}], '$limit':5},done);
+            // });
+
+            it('faulty find (unknown op)', function(done){
+                TestModel.find({'v1':[{'$eq':1},{'$neq':2}]},function(err){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.find.invalidop');
+                    done();
+                });
+            });
+            it('faulty find (several ops)', function(done){
+                TestModel.find({'v1':[{'$eq':1, 'foo':'bar'}]},function(err){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.find.multiop');
+                    done();
+                });
+            });
+            it('faulty find (unknown relation type)', function(done){
+                TestModel.find({'v1': function(){}},function(err){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.find.invalidrelob');
+                    done();
+                });
+            });
+            it('faulty find (invalid limit type)', function(done){
+                TestModel.find({'v1': 1, '$limit':'foo'},function(err){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.find.limittype');
+                    done();
+                });
+            });
+
+        });
 
 
         it.skip('pig update', function(done){
@@ -270,34 +325,6 @@ describe('Apollo > ', function(){
                 });
             });
         });
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     });

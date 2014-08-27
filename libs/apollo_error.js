@@ -9,7 +9,7 @@ var util = require('util');
  */
 var AERROR_TYPES = {
 	'unspecified': {
-		msg: "Unspecified Apollo error ->"
+		msg: 'Unspecified Apollo error ->'
 	},
 	'model.tablecreation.dbschemaquery': {
 		msg: 'Error while retrieveing Schema of DB Table "%s"'
@@ -18,19 +18,37 @@ var AERROR_TYPES = {
 		msg: 'Given Schema does not match existing DB Table "%s"'
 	},
 	'model.tablecreation.dbdrop': {
-		msg: "Error during drop of DB Table -> %s"
+		msg: 'Error during drop of DB Table -> %s'
 	},
 	'model.tablecreation.dbcreate': {
-		msg: "Error during creation of DB Table -> %s"
+		msg: 'Error during creation of DB Table -> %s'
 	},
 	'model.tablecreation.dbindex': {
-		msg: "Error during creation of index on DB Table -> %s"
+		msg: 'Error during creation of index on DB Table -> %s'
+	},
+	'model.find.invalidrelob': {
+		msg: 'Invalid field relation object'
+	},
+	'model.find.multiop': {
+		msg: 'Invalid field relation: only one operator allowed'
+	},
+	'model.find.invalidop': {
+		msg: 'Invalid field relation: unknown operator: "%s"'
+	},
+	'model.find.multiorder': {
+		msg: 'Invalid order by: only one clause per object'
+	},
+	'model.find.limittype': {
+		msg: 'Invalid limit value'
+	},
+	'model.find.dberror': {
+		msg: 'Error during find query on DB -> %s'
 	},
 	'model.save.unsetkey': {
-		msg: "Key Field: %s must be set"
+		msg: 'Key Field: %s must be set'
 	},
 	'model.save.invalidvalue': {
-		msg: "Invalid Value: \"%s\" for Field: %s (Type: %s)"
+		msg: 'Invalid Value: "%s" for Field: %s (Type: %s)'
 	}
 };
 

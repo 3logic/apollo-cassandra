@@ -6,6 +6,7 @@ var querystring = require("querystring");
 var util = require("util");
 var BaseModel = require('./base_model');
 var schemer = require('./apollo_schemer');
+var lodash = require("lodash");
 
 /**
  * Utilità per cassandra
@@ -108,6 +109,11 @@ Apollo.prototype = {
         var on_keyspace = function(err){
             if(err){ return callback(err);}
             this._client = new cql.Client(this._connection);
+
+            var options = lodash.clone(this._connection);
+            options.host = options.hosts[0];
+            this._define_connection = new cql.Connection(options);
+            
             callback(null, this);
         };
 
@@ -140,6 +146,7 @@ Apollo.prototype = {
             name : model_name,
             schema : model_schema,
             cql : this._client,
+            define_connection : this._define_connection,
             mismatch_behaviour : options.mismatch_behaviour
         };
 
