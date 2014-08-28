@@ -57,7 +57,7 @@ Apollo.prototype = {
             }
         }
 
-        Model.set_properties(properties);
+        Model._set_properties(properties);
 
         return Model;
     },

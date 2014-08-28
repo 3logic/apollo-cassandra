@@ -70,6 +70,27 @@ BaseModel._properties = {
 };
 
 /**
+ * Set properties for the model. Creation of Model constructor use this method to set internal properties
+ * @param {object} properties Properties object
+ * @protected
+ */
+BaseModel._set_properties = function(properties){
+    var schema = properties.schema,
+        cql = properties.cql,
+        table_name = schema.table_name || properties.name;
+
+    if(!check_db_tablename(table_name)){
+        throw(build_error('model.tablecreation.invalidname',table_name));
+    }
+
+    var qualified_table_name = cql.options.keyspace+'.'+table_name;
+
+    this._properties = properties;
+    this._properties.table_name = table_name;
+    this._properties.qualified_table_name = qualified_table_name;
+};
+
+/**
  * Execute a query on a defined connection which always remain the same
  * @param  {string}                         query       Query to execute
  * @param  {object}                         options     Options for the query
@@ -288,30 +309,42 @@ BaseModel._execute_table_query = function(query, consistency, callback){
 
 };
 
-
+/**
+ * Given a field name and a value, format the query portion regarding that value
+ * @param  {string} fieldname  Name of the filed
+ * @param  {string} fieldvalue Value of the filed
+ * @return {string}            String to be used in query
+ * @protected
+ */
 BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
     var properties = this._properties,
         schema = properties.schema,
         fieldtype = schema.fields[fieldname];
 
     if(fieldvalue instanceof Array){
-        return '('+
-            fieldvalue.map(function(v){
+        var val = fieldvalue.map(function(v){
                 return this._get_db_value_expression(fieldname, v);
-            }.bind(this)).join(', ')+')';
+            }.bind(this)).join(', ');
+        return util.format('(%s)',val);
     }
 
     if (fieldtype == 'text')                
-        return ("\'" + fieldvalue + "\'");
+        return util.format("'%s'",fieldvalue);
     else if(fieldvalue instanceof Date)
-        return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");   
-    //i dati blob vengono passati attraverso stringhe
+        return util.format("'%s'",fieldvalue.toISOString().replace(/\..+/, ''));
+    //blob data are passed through strings
     else if(fieldtype == 'blob')
-        return ("textAsBlob(\'" + fieldvalue.toString() + "\')");
+        return util.format("textAsBlob('%s')",fieldvalue.toString());
     else
         return fieldvalue;
 };
 
+/**
+ * Given a complete query object, generate the where clause part
+ * @param  {object} query_ob Object representing the query
+ * @return {string}          Where clause
+ * @protected
+ */
 BaseModel._create_where_clause = function(query_ob){
     var query_relations = [];
     for(var k in query_ob){
@@ -356,6 +389,13 @@ BaseModel._create_where_clause = function(query_ob){
     return query_relations.length > 0 ? util.format('WHERE %s',query_relations.join(' AND ')) : '';
 };
 
+/**
+ * Given a complete query object, generate the SELECT query
+ * @param  {object} query_ob Object representing the query
+ * @param  {object} options  Options for the query. Unused right now 
+ * @return {string}          Select statement
+ * @protected
+ */
 BaseModel._create_find_query = function(query_ob, options){
     var query_relations = [],
         order_keys = [],
@@ -408,22 +448,6 @@ BaseModel._create_find_query = function(query_ob, options){
 
 
 /* Static Public ---------------------------------------- */
-
-BaseModel.set_properties = function(properties){
-    var schema = properties.schema,
-        cql = properties.cql,
-        table_name = schema.table_name || properties.name;
-
-    if(!check_db_tablename(table_name)){
-        throw(build_error('model.tablecreation.invalidname',table_name));
-    }
-
-    var qualified_table_name = cql.options.keyspace+'.'+table_name;
-
-    this._properties = properties;
-    this._properties.table_name = table_name;
-    this._properties.qualified_table_name = qualified_table_name;
-};
 
 /**
  * Return true if data related to model is initialized on cassandra
@@ -648,7 +672,7 @@ module.exports = BaseModel;
  */
 
 /**
-  * Options for find operation
-  * @typedef {Object} BaseModel~find_options
-  * @property {boolean} [raw=false] - Returns raw result instead of instances of your model
+* Options for find operation
+* @typedef {Object} BaseModel~find_options
+* @property {boolean} [raw=false] - Returns raw result instead of instances of your model
 */
