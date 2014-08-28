@@ -73,6 +73,11 @@ module.exports = function(grunt) {
 
   grunt.registerTask('default', ['jshint', 'test', 'doc']);
   grunt.registerTask('doc', ['jsdoc']);
-  grunt.registerTask('test', ['mochacov']);
+  
+  if(process.env.TRAVIS){
+    grunt.registerTask('test', ['mochacov:test', 'mochacov:coverage']);
+  }else{
+    grunt.registerTask('test', ['mochacov:test', 'mochacov:local_coverage']);
+  }
 
 };
