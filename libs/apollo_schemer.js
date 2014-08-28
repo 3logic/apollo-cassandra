@@ -67,8 +67,8 @@ var schemer = {
         if(model_schema.indexes){
             if(!(model_schema.indexes instanceof Array))
                 throw("Indexes must be an array of column name strings");
-            for(var j in model_schema.indexes)
-                if((typeof(model_schema.indexes[j]) != "string") || !(model_schema.indexes[j] in model_schema.fields))
+            for(var l in model_schema.indexes)
+                if((typeof(model_schema.indexes[l]) != "string") || !(model_schema.indexes[l] in model_schema.fields))
                     throw("Indexes must be an array of column name strings");
         }
     }

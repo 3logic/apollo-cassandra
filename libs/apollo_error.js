@@ -102,4 +102,4 @@ var build_error = function(error_type, params){
   * @property {String} msg  - error message (with replaced parameters if any)
   */
 
-module.exports = build_error
+module.exports = build_error;

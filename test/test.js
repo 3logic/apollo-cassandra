@@ -99,7 +99,7 @@ describe('Apollo > ', function(){
         it('add faulty model (silly type)', function(){
             assert.throws(function(){
                 var TestModel = ap.add_model("test1", faulty_model_test1);
-            })
+            });
         });
 
         it('instance model', function(){
