@@ -192,7 +192,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-29">line 29</a>
+				 <a href="base_model.js.html#sunlight-1-line-34">line 34</a>
 			</li>
 		</ul>
 	</dd>
@@ -289,7 +289,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-61">line 61</a>
+				 <a href="base_model.js.html#sunlight-1-line-67">line 67</a>
 			</li>
 		</ul>
 	</dd>
@@ -360,7 +360,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-8">line 8</a>
+				 <a href="base_model.js.html#sunlight-1-line-13">line 13</a>
 			</li>
 		</ul>
 	</dd>
@@ -504,7 +504,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-174">line 174</a>
+				 <a href="base_model.js.html#sunlight-1-line-204">line 204</a>
 			</li>
 		</ul>
 	</dd>
@@ -652,7 +652,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-72">line 72</a>
+				 <a href="base_model.js.html#sunlight-1-line-89">line 89</a>
 			</li>
 		</ul>
 	</dd>
@@ -800,7 +800,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-142">line 142</a>
+				 <a href="base_model.js.html#sunlight-1-line-173">line 173</a>
 			</li>
 		</ul>
 	</dd>
@@ -948,7 +948,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-126">line 126</a>
+				 <a href="base_model.js.html#sunlight-1-line-156">line 156</a>
 			</li>
 		</ul>
 	</dd>
@@ -1119,7 +1119,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-234">line 234</a>
+				 <a href="base_model.js.html#sunlight-1-line-266">line 266</a>
 			</li>
 		</ul>
 	</dd>
@@ -1244,7 +1244,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-189">line 189</a>
+				 <a href="base_model.js.html#sunlight-1-line-219">line 219</a>
 			</li>
 		</ul>
 	</dd>
@@ -1274,7 +1274,7 @@
         
             
 <dt>
-    <h4 class="name" id="find"><span class="type-signature">&lt;static> </span>find<span class="signature">(query_ob, options, callback)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="delete"><span class="type-signature">&lt;static> </span>delete<span class="signature">(query_ob, <span class="optional">options</span>, callback)</span><span class="type-signature"></span></h4>
     
     
 </dt>
@@ -1282,7 +1282,7 @@
     
     
     <div class="description">
-        <p>Execute a search on Cassandra for row of this Model</p>
+        <p>Delete entry on database</p>
     </div>
     
 
@@ -1303,6 +1303,8 @@
 
 		<th>Type</th>
 
+		
+		<th>Argument</th>
 		
 
 		
@@ -1329,10 +1331,18 @@
             </td>
 
             
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
 
             
 
-            <td class="description last"><p>The query objcet</p></td>
+            <td class="description last"><p>The query object for deletion</p></td>
         </tr>
 
 	
@@ -1345,17 +1355,27 @@
             <td class="type">
             
                 
-<span class="param-type">object</span>
+<span class="param-type">BaseModel~delete_options</span>
 
 
             
             </td>
 
             
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
 
             
 
-            <td class="description last"><p>Option for ths query</p></td>
+            <td class="description last"><p>Option for this delete query</p></td>
         </tr>
 
 	
@@ -1368,12 +1388,20 @@
             <td class="type">
             
                 
-<span class="param-type"><a href="BaseModel.html#QueryExecution">BaseModel~QueryExecution</a></span>
+<span class="param-type"><a href="BaseModel.html#GenericCallback">BaseModel~GenericCallback</a></span>
 
 
             
             </td>
 
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
             
 
             
@@ -1415,7 +1443,206 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-310">line 310</a>
+				 <a href="base_model.js.html#sunlight-1-line-516">line 516</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="find"><span class="type-signature">&lt;static> </span>find<span class="signature">(query_ob, <span class="optional">options</span>, callback)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        <p>Execute a search on Cassandra for row of this Model</p>
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+
+		<th>Type</th>
+
+		
+		<th>Argument</th>
+		
+
+		
+
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+
+	<tbody>
+	
+
+        <tr>
+            
+                <td class="name"><code>query_ob</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The query objcet</p></td>
+        </tr>
+
+	
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="BaseModel.html#find_options">BaseModel~find_options</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Option for this find query</p></td>
+        </tr>
+
+	
+
+        <tr>
+            
+                <td class="name"><code>callback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="BaseModel.html#QueryExecution">BaseModel~QueryExecution</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Data retrieved</p></td>
+        </tr>
+
+	
+	</tbody>
+</table>
+
+    
+    
+    
+<dl class="details">
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="base_model.js.html">base_model.js</a>,
+				 <a href="base_model.js.html#sunlight-1-line-468">line 468</a>
 			</li>
 		</ul>
 	</dd>
@@ -1558,7 +1785,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-282">line 282</a>
+				 <a href="base_model.js.html#sunlight-1-line-433">line 433</a>
 			</li>
 		</ul>
 	</dd>
@@ -1634,7 +1861,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-273">line 273</a>
+				 <a href="base_model.js.html#sunlight-1-line-424">line 424</a>
 			</li>
 		</ul>
 	</dd>
@@ -1680,6 +1907,174 @@
 
 
         
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="delete"><span class="type-signature"></span>delete<span class="signature">(<span class="optional">options</span>, callback)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        <p>Delete this entry on database</p>
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params table table-striped">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+
+		<th>Type</th>
+
+		
+		<th>Argument</th>
+		
+
+		
+
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+
+	<tbody>
+	
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">BaseModel~delete_options</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Option for this delete query</p></td>
+        </tr>
+
+	
+
+        <tr>
+            
+                <td class="name"><code>callback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="BaseModel.html#GenericCallback">BaseModel~GenericCallback</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Data retrieved</p></td>
+        </tr>
+
+	
+	</tbody>
+</table>
+
+    
+    
+    
+<dl class="details">
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="base_model.js.html">base_model.js</a>,
+				 <a href="base_model.js.html#sunlight-1-line-600">line 600</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
     
     
 </dd>
@@ -1805,7 +2200,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-327">line 327</a>
+				 <a href="base_model.js.html#sunlight-1-line-553">line 553</a>
 			</li>
 		</ul>
 	</dd>
@@ -1839,6 +2234,147 @@
         <h3 class="subsection-title">Type Definitions</h3>
 
         <dl>
+                
+<dt class="name" id="find_options">
+    <h4>find_options</h4>
+
+    
+</dt>
+<dd>
+    
+    <div class="description">
+        <p>Options for find operation</p>
+    </div>
+    
+
+    
+        <h5>Type:</h5>
+        <ul>
+            <li>
+                
+<span class="param-type">Object</span>
+
+
+            </li>
+        </ul>
+    
+
+    
+<dl class="details">
+	
+
+	<h5 class="subsection-title">Properties:</h5>
+
+	<dl>
+
+<table class="props table table-striped">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+
+		<th>Type</th>
+
+		
+		<th>Argument</th>
+		
+
+		
+		<th>Default</th>
+		
+
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+
+	<tbody>
+	
+
+        <tr>
+            
+                <td class="name"><code>raw</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last"><p>Returns raw result instead of instances of your model</p></td>
+        </tr>
+
+	
+	</tbody>
+</table>
+</dl>
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+
+
+
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source">
+		<ul class="dummy">
+			<li>
+				<a href="base_model.js.html">base_model.js</a>,
+				 <a href="base_model.js.html#sunlight-1-line-622">line 622</a>
+			</li>
+		</ul>
+	</dd>
+	
+
+	
+
+	
+
+	
+</dl>
+
+
+    
+</dd>
+
+            
                 
 <dt>
     <h4 class="name" id="GenericCallback"><span class="type-signature"></span>GenericCallback<span class="signature">(err)</span><span class="type-signature"></span></h4>
@@ -1936,7 +2472,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-382">line 382</a>
+				 <a href="base_model.js.html#sunlight-1-line-616">line 616</a>
 			</li>
 		</ul>
 	</dd>
@@ -2084,7 +2620,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-384">line 384</a>
+				 <a href="base_model.js.html#sunlight-1-line-618">line 618</a>
 			</li>
 		</ul>
 	</dd>
@@ -2232,7 +2768,7 @@
 		<ul class="dummy">
 			<li>
 				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-386">line 386</a>
+				 <a href="base_model.js.html#sunlight-1-line-620">line 620</a>
 			</li>
 		</ul>
 	</dd>
@@ -2283,7 +2819,7 @@
 					
 		<span class="jsdoc-message">
 		Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a>
-		on Sat Aug 9th 2014 using the <a
+		on Thu Aug 28th 2014 using the <a
 			href="https://github.com/terryweiss/docstrap">DocStrap template</a>.
 		</span>
 				</footer>
