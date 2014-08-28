@@ -235,15 +235,15 @@ module.exports = Apollo;
  */
 
 /**
- * Opzioni per il client cassandra
+ * Options for cassandra client
  * @typedef {Object} Apollo~CassandraOptions
  * @property {object} replication - replication configuration object
  */
 
  /**
-  * Opzioni per il client cassandra
+  * Options for cassandra client
   * @typedef {Object} Apollo~Configuration
-  * @property {Apollo~connection} connection - Configurazione per la connessione client cassandra
+  * @property {Apollo~connection} connection - Configuration for connection of Cassandra client
   */
 
 /**
@@ -255,12 +255,16 @@ module.exports = Apollo;
  */
 
  /**
-  * Opzioni per la connessione client cassandra
-  * @typedef {Object} Apollo~connection
-  * @property {array} hosts - Array of string in host:port format. Port is optional (default 9042).
+  * Options for connection of Cassandra client
+  * @typedef {Object}  Apollo~connection
+  * @property {array}  hosts - Array of string in host:port format. Port is optional (default 9042).
   * @property {string} keyspace - Name of keyspace to use.
   * @property {string} [username=null] - User for authentication.
-  * @property {string} [password] - Password for authentication.
+  * @property {string} [password=null] - Password for authentication.
+  * @property {int}    [staleTime=1000] - Time in milliseconds before trying to reconnect to a node.
+  * @property {int}    [maxExecuteRetries=3] - Maximum amount of times an execute can be retried using another connection, in case the server is unhealthy.
+  * @property {int}    [getAConnectionTimeout=3500] - Maximum time in milliseconds to wait for a connection from the pool.
+  * @property {int}    [poolSize=1] - Number of connections to open for each host
   */
  
 
