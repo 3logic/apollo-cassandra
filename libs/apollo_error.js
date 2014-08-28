@@ -11,6 +11,9 @@ var AERROR_TYPES = {
 	'unspecified': {
 		msg: 'Unspecified Apollo error ->'
 	},
+	'model.tablecreation.invalidname': {
+		msg: 'Table names only allow alphanumeric and _ and must star witch a letter, got %s'
+	},
 	'model.tablecreation.dbschemaquery': {
 		msg: 'Error while retrieveing Schema of DB Table "%s"'
 	},

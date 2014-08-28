@@ -69,7 +69,15 @@ BaseModel._properties = {
     schema : null
 };
 
-
+/**
+ * Execute a query on a defined connection which always remain the same
+ * @param  {string}                         query       Query to execute
+ * @param  {object}                         options     Options for the query
+ * @param  {BaseModel~cql_consistencies}    consistency Consistency type
+ * @param  {BaseModel~GenericCallback}      callback    callback of the execution
+ * @protected
+ * @static
+ */
 BaseModel._execute_definition_query = function(query, options, consistency, callback){
     var properties = this._properties,
         conn = properties.define_connection;
@@ -150,7 +158,7 @@ BaseModel._create_table = function(callback){
 
 /**
  * Drop a table
- * @param  {BaseModel~GenericCallback} callback return eventually an error on dropping
+ * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
  * @protected
  */
 BaseModel._drop_table = function(callback){
@@ -406,8 +414,9 @@ BaseModel.set_properties = function(properties){
         cql = properties.cql,
         table_name = schema.table_name || properties.name;
 
-    if(!check_db_tablename(table_name))
-        throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
+    if(!check_db_tablename(table_name)){
+        throw(build_error('model.tablecreation.invalidname',table_name));
+    }
 
     var qualified_table_name = cql.options.keyspace+'.'+table_name;
 
@@ -428,7 +437,7 @@ BaseModel.is_table_ready = function(){
 /**
  * Initialize data related to this model
  * @param  {object}   options  Options
- * @param   BaseModel~QueryExecution} callback Called on init end
+ * @param  {BaseModel~QueryExecution} callback Called on init end
  */
 BaseModel.init = function(options, callback){
     if(!callback){
@@ -453,7 +462,12 @@ BaseModel.init = function(options, callback){
     }
 };
 
-
+/**
+ * Execute a generic query
+ * @param  {string}                         query - Query to execute
+ * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
+ * @param  {BaseModel~QueryExecution}       callback - Called on execution end
+ */
 BaseModel.execute_query = function(query, consistency, callback){
     this._properties.cql.execute(query, cql_consistencies[consistency], callback);
 };
@@ -461,9 +475,9 @@ BaseModel.execute_query = function(query, consistency, callback){
 
 /**
  * Execute a search on Cassandra for row of this Model
- * @param  {object}   query_ob The query objcet
- * @param  {BaseModel~find_options}   [options]  Option for this find query
- * @param  {BaseModel~QueryExecution} callback Data retrieved
+ * @param  {object}                   query_ob - The query objcet
+ * @param  {BaseModel~find_options}   [options] - Option for this find query
+ * @param  {BaseModel~QueryExecution} callback - Data retrieved
  */
 BaseModel.find = function(query_ob, options, callback){
     if(arguments.length == 2){
@@ -509,9 +523,9 @@ BaseModel.find = function(query_ob, options, callback){
 
 /**
  * Delete entry on database
- * @param  {object}   query_ob The query object for deletion
- * @param  {BaseModel~delete_options}   [options]  Option for this delete query
- * @param  {BaseModel~GenericCallback} callback Data retrieved
+ * @param  {object}                     query_ob - The query object for deletion
+ * @param  {BaseModel~delete_options}   [options] - Option for this delete query
+ * @param  {BaseModel~GenericCallback}  callback - Data retrieved
  */
 BaseModel.delete = function(query_ob, options, callback){
     if(arguments.length == 2){
@@ -546,8 +560,8 @@ BaseModel.delete = function(query_ob, options, callback){
 
 /**
  * Save this instance of the model
- * @param  {object}   options  options for the query
- * @param  {BaseModel~QueryExecution} callback Result of the save or an error eventually
+ * @param  {object}                     [options={}] - options for the query
+ * @param  {BaseModel~QueryExecution}   callback - Result of the save or an error eventually
  * @instance
  */
 BaseModel.prototype.save = function(options, callback){
@@ -594,8 +608,8 @@ BaseModel.prototype.save = function(options, callback){
 
 /**
  * Delete this entry on database
- * @param  {BaseModel~delete_options}   [options]  Option for this delete query
- * @param  {BaseModel~GenericCallback} callback Data retrieved
+ * @param  {BaseModel~delete_options}   [options={}] - Option for this delete query
+ * @param  {BaseModel~GenericCallback}  callback - Data retrieved
  */
 BaseModel.prototype.delete = function(options, callback){
     if(arguments.length == 1){
