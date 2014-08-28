@@ -1,4 +1,4 @@
-apollo
+Apollo
 ======
 
 [![Build Status](https://travis-ci.org/3logic/apollo.svg?branch=master)](https://travis-ci.org/3logic/apollo)
@@ -77,8 +77,8 @@ alex.save(function(err){
 ##About
 
 Apollo is brought to you by
-- Niccolò Biondi
+- [Niccolò Biondi](https://github.com/bionicco)
 - [Elia Cogodi](https://github.com/ecogodi)
-- [Fabrizio Rugeri](https://github.com/ramiel)
+- [Fabrizio Ruggeri](https://github.com/ramiel)
 
 and with the support of [3logic](http://www.3logic.it)
