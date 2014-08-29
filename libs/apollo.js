@@ -115,6 +115,12 @@ Apollo.prototype = {
             var options = lodash.clone(this._connection);
             options.host = options.hosts[0];
             this._define_connection = new cql.Connection(options);
+
+            //Reset connections on all models
+            for(var i in this._models){
+                this._models[i]._properties.cql = this._client;
+                this._models[i]._properties.define_connection = this._define_connection;
+            }
             
             callback(null, this);
         };
@@ -149,10 +155,12 @@ Apollo.prototype = {
         var base_properties = {
             name : model_name,
             schema : model_schema,
-            cql : this._client,
-            define_connection : this._define_connection,
+            keyspace : this._keyspace,
             mismatch_behaviour : options.mismatch_behaviour,
-            get_constructor : this.get_model.bind(this,model_name)
+            define_connection : this._define_connection,
+            cql : this._client,
+            get_constructor : this.get_model.bind(this,model_name),
+            connect: this.connect.bind(this)
         };
 
         return (this._models[model_name] = this._generate_model(base_properties));
@@ -215,7 +223,10 @@ Apollo.prototype = {
      * Chiusura della connessione
      * @param  {Function} callback callback
      */
-    close : function(callback){        
+    close : function(callback){ 
+        if(!this._client){
+            return callback();
+        }
         this._client.shutdown(callback);
     }
 };

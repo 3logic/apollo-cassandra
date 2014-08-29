@@ -8,7 +8,8 @@ var util = require('util'),
 var CONSISTENCY_FIND   = 'one',
     CONSISTENCY_SAVE   = 'one',
     CONSISTENCY_DEFINE = 'one',
-    CONSISTENCY_DELETE = 'one';
+    CONSISTENCY_DELETE = 'one',
+    CONSISTENCY_DEFAULT = 'one';
 
 /**
  * Consistency levels
@@ -83,11 +84,19 @@ BaseModel._set_properties = function(properties){
         throw(build_error('model.tablecreation.invalidname',table_name));
     }
 
-    var qualified_table_name = cql.options.keyspace+'.'+table_name;
+    var qualified_table_name = properties.keyspace + '.' + table_name;
 
     this._properties = properties;
     this._properties.table_name = table_name;
     this._properties.qualified_table_name = qualified_table_name;
+};
+
+BaseModel._ensure_connected = function(callback){
+    if(!this._properties.cql){
+        this._properties.connect(callback);
+    }else{
+        callback();
+    }
 };
 
 /**
@@ -99,13 +108,14 @@ BaseModel._set_properties = function(properties){
  * @protected
  * @static
  */
-BaseModel._execute_definition_query = function(query, options, consistency, callback){
-    var properties = this._properties,
-        conn = properties.define_connection;
-
-    conn.open(function(){
-         conn.execute(query, options, consistency, callback);
-    });
+BaseModel._execute_definition_query = function(query, params, consistency, callback){
+    this._ensure_connected(function(){
+        var properties = this._properties,
+            conn = properties.define_connection;
+        conn.open(function(){
+            conn.execute(query, params, consistency, callback);
+        });
+    }.bind(this));    
 };
 
 
@@ -136,7 +146,7 @@ BaseModel._create_table = function(callback){
             if(model_schema.indexes instanceof Array)
                 async.eachSeries(model_schema.indexes, function(idx,next){
                     //console.log(this._create_index_query(table_name,idx));
-                    cql.execute(this._create_index_query(table_name,idx), [], consistency, function(err, result){
+                    this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
                         else
                             next(null,result);
@@ -247,11 +257,11 @@ BaseModel._create_index_query = function(table_name, index_name){
  */
 BaseModel._get_db_table_schema = function (callback){
     var table_name = this._properties.table_name,
-        keyspace = this._properties.cql.options.keyspace;
+        keyspace = this._properties.keyspace;
 
     var query = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? AND keyspace_name = ? ALLOW FILTERING;";
 
-    this._properties.cql.execute(query,[table_name,keyspace], function(err, result) {
+    this.execute_query(query,[table_name,keyspace], null, function(err, result) {
 
         if (err) return callback(build_error('model.tablecreation.dbschemaquery', err));
 
@@ -295,7 +305,7 @@ BaseModel._get_db_table_schema = function (callback){
 BaseModel._execute_table_query = function(query, consistency, callback){
     
     var do_execute_query = function(doquery,docallback){
-        this.execute_query(doquery, consistency, docallback);
+        this.execute_query(doquery, null, consistency, docallback);
     }.bind(this,query);
 
     if(this.is_table_ready()){
@@ -492,7 +502,20 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
-BaseModel.execute_query = function(query, consistency, callback){
+BaseModel.execute_query = function(query, params, consistency, callback){
+    this._ensure_connected(function(err){
+        if(err) return callback(err);
+        this._properties.cql.execute(query, params, cql_consistencies[consistency], callback);
+    }.bind(this));    
+};
+
+/**
+ * Execute a generic query
+ * @param  {string}                         query - Query to execute
+ * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
+ * @param  {BaseModel~QueryExecution}       callback - Called on execution end
+ */
+BaseModel.execute_prepared_query = function(query, consistency, callback){
     this._properties.cql.execute(query, cql_consistencies[consistency], callback);
 };
 

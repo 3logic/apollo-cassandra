@@ -111,6 +111,18 @@ describe('Apollo > ', function(){
             assert.property(ins,'save');
         });
 
+        it('Init works even if not already connected', function(done){
+            var ap2 =  new Apollo(connection);
+            var Model = ap2.add_model("test1", model_test1);
+            Model.find( {'v1' : 1}, done);            
+        });
+
+        it('Find works if not already connected', function(done){
+            var ap2 =  new Apollo(connection);
+            var FindModel = ap2.add_model("test1", model_test1);
+            FindModel.find( {'v1' : 1}, done);
+        });
+
          
         describe('Schema conflicts on init > ',function(){
             
