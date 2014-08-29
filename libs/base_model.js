@@ -460,6 +460,14 @@ BaseModel._create_find_query = function(query_ob, options){
 /* Static Public ---------------------------------------- */
 
 /**
+ * Restituisce il nome della tabella usato dal modello
+ * @return {string} Nome della tabella
+ */
+BaseModel.get_table_name = function(){
+    return this._properties.table_name;
+};
+
+/**
  * Return true if data related to model is initialized on cassandra
  * @return {Boolean} The ready state
  * @public
