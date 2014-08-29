@@ -57,7 +57,7 @@ Apollo.prototype = {
             }
         }
 
-        Model.set_properties(properties);
+        Model._set_properties(properties);
 
         return Model;
     },
@@ -115,6 +115,12 @@ Apollo.prototype = {
             var options = lodash.clone(this._connection);
             options.host = options.hosts[0];
             this._define_connection = new cql.Connection(options);
+
+            //Reset connections on all models
+            for(var i in this._models){
+                this._models[i]._properties.cql = this._client;
+                this._models[i]._properties.define_connection = this._define_connection;
+            }
             
             callback(null, this);
         };
@@ -149,10 +155,12 @@ Apollo.prototype = {
         var base_properties = {
             name : model_name,
             schema : model_schema,
-            cql : this._client,
-            define_connection : this._define_connection,
+            keyspace : this._keyspace,
             mismatch_behaviour : options.mismatch_behaviour,
-            get_constructor : this.get_model.bind(this,model_name)
+            define_connection : this._define_connection,
+            cql : this._client,
+            get_constructor : this.get_model.bind(this,model_name),
+            connect: this.connect.bind(this)
         };
 
         return (this._models[model_name] = this._generate_model(base_properties));
@@ -215,7 +223,10 @@ Apollo.prototype = {
      * Chiusura della connessione
      * @param  {Function} callback callback
      */
-    close : function(callback){        
+    close : function(callback){ 
+        if(!this._client){
+            return callback();
+        }
         this._client.shutdown(callback);
     }
 };
@@ -235,15 +246,15 @@ module.exports = Apollo;
  */
 
 /**
- * Opzioni per il client cassandra
+ * Options for cassandra client
  * @typedef {Object} Apollo~CassandraOptions
  * @property {object} replication - replication configuration object
  */
 
  /**
-  * Opzioni per il client cassandra
+  * Options for cassandra client
   * @typedef {Object} Apollo~Configuration
-  * @property {Apollo~connection} connection - Configurazione per la connessione client cassandra
+  * @property {Apollo~connection} connection - Configuration for connection of Cassandra client
   */
 
 /**
@@ -255,12 +266,16 @@ module.exports = Apollo;
  */
 
  /**
-  * Opzioni per la connessione client cassandra
-  * @typedef {Object} Apollo~connection
-  * @property {array} hosts - Array of string in host:port format. Port is optional (default 9042).
+  * Options for connection of Cassandra client
+  * @typedef {Object}  Apollo~connection
+  * @property {array}  hosts - Array of string in host:port format. Port is optional (default 9042).
   * @property {string} keyspace - Name of keyspace to use.
   * @property {string} [username=null] - User for authentication.
-  * @property {string} [password] - Password for authentication.
+  * @property {string} [password=null] - Password for authentication.
+  * @property {int}    [staleTime=1000] - Time in milliseconds before trying to reconnect to a node.
+  * @property {int}    [maxExecuteRetries=3] - Maximum amount of times an execute can be retried using another connection, in case the server is unhealthy.
+  * @property {int}    [getAConnectionTimeout=3500] - Maximum time in milliseconds to wait for a connection from the pool.
+  * @property {int}    [poolSize=1] - Number of connections to open for each host
   */
  
 

@@ -8,7 +8,8 @@ var util = require('util'),
 var CONSISTENCY_FIND   = 'one',
     CONSISTENCY_SAVE   = 'one',
     CONSISTENCY_DEFINE = 'one',
-    CONSISTENCY_DELETE = 'one';
+    CONSISTENCY_DELETE = 'one',
+    CONSISTENCY_DEFAULT = 'one';
 
 /**
  * Consistency levels
@@ -69,14 +70,52 @@ BaseModel._properties = {
     schema : null
 };
 
+/**
+ * Set properties for the model. Creation of Model constructor use this method to set internal properties
+ * @param {object} properties Properties object
+ * @protected
+ */
+BaseModel._set_properties = function(properties){
+    var schema = properties.schema,
+        cql = properties.cql,
+        table_name = schema.table_name || properties.name;
 
-BaseModel._execute_definition_query = function(query, options, consistency, callback){
-    var properties = this._properties,
-        conn = properties.define_connection;
+    if(!check_db_tablename(table_name)){
+        throw(build_error('model.tablecreation.invalidname',table_name));
+    }
 
-    conn.open(function(){
-         conn.execute(query, options, consistency, callback);
-    });
+    var qualified_table_name = properties.keyspace + '.' + table_name;
+
+    this._properties = properties;
+    this._properties.table_name = table_name;
+    this._properties.qualified_table_name = qualified_table_name;
+};
+
+BaseModel._ensure_connected = function(callback){
+    if(!this._properties.cql){
+        this._properties.connect(callback);
+    }else{
+        callback();
+    }
+};
+
+/**
+ * Execute a query on a defined connection which always remain the same
+ * @param  {string}                         query       Query to execute
+ * @param  {object}                         options     Options for the query
+ * @param  {BaseModel~cql_consistencies}    consistency Consistency type
+ * @param  {BaseModel~GenericCallback}      callback    callback of the execution
+ * @protected
+ * @static
+ */
+BaseModel._execute_definition_query = function(query, params, consistency, callback){
+    this._ensure_connected(function(){
+        var properties = this._properties,
+            conn = properties.define_connection;
+        conn.open(function(){
+            conn.execute(query, params, consistency, callback);
+        });
+    }.bind(this));    
 };
 
 
@@ -107,7 +146,7 @@ BaseModel._create_table = function(callback){
             if(model_schema.indexes instanceof Array)
                 async.eachSeries(model_schema.indexes, function(idx,next){
                     //console.log(this._create_index_query(table_name,idx));
-                    cql.execute(this._create_index_query(table_name,idx), [], consistency, function(err, result){
+                    this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
                         else
                             next(null,result);
@@ -150,7 +189,7 @@ BaseModel._create_table = function(callback){
 
 /**
  * Drop a table
- * @param  {BaseModel~GenericCallback} callback return eventually an error on dropping
+ * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
  * @protected
  */
 BaseModel._drop_table = function(callback){
@@ -218,11 +257,11 @@ BaseModel._create_index_query = function(table_name, index_name){
  */
 BaseModel._get_db_table_schema = function (callback){
     var table_name = this._properties.table_name,
-        keyspace = this._properties.cql.options.keyspace;
+        keyspace = this._properties.keyspace;
 
     var query = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? AND keyspace_name = ? ALLOW FILTERING;";
 
-    this._properties.cql.execute(query,[table_name,keyspace], function(err, result) {
+    this.execute_query(query,[table_name,keyspace], null, function(err, result) {
 
         if (err) return callback(build_error('model.tablecreation.dbschemaquery', err));
 
@@ -266,7 +305,7 @@ BaseModel._get_db_table_schema = function (callback){
 BaseModel._execute_table_query = function(query, consistency, callback){
     
     var do_execute_query = function(doquery,docallback){
-        this.execute_query(doquery, consistency, docallback);
+        this.execute_query(doquery, null, consistency, docallback);
     }.bind(this,query);
 
     if(this.is_table_ready()){
@@ -280,30 +319,42 @@ BaseModel._execute_table_query = function(query, consistency, callback){
 
 };
 
-
+/**
+ * Given a field name and a value, format the query portion regarding that value
+ * @param  {string} fieldname  Name of the filed
+ * @param  {string} fieldvalue Value of the filed
+ * @return {string}            String to be used in query
+ * @protected
+ */
 BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
     var properties = this._properties,
         schema = properties.schema,
         fieldtype = schema.fields[fieldname];
 
     if(fieldvalue instanceof Array){
-        return '('+
-            fieldvalue.map(function(v){
+        var val = fieldvalue.map(function(v){
                 return this._get_db_value_expression(fieldname, v);
-            }.bind(this)).join(', ')+')';
+            }.bind(this)).join(', ');
+        return util.format('(%s)',val);
     }
 
     if (fieldtype == 'text')                
-        return ("\'" + fieldvalue + "\'");
+        return util.format("'%s'",fieldvalue);
     else if(fieldvalue instanceof Date)
-        return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");   
-    //i dati blob vengono passati attraverso stringhe
+        return util.format("'%s'",fieldvalue.toISOString().replace(/\..+/, ''));
+    //blob data are passed through strings
     else if(fieldtype == 'blob')
-        return ("textAsBlob(\'" + fieldvalue.toString() + "\')");
+        return util.format("textAsBlob('%s')",fieldvalue.toString());
     else
         return fieldvalue;
 };
 
+/**
+ * Given a complete query object, generate the where clause part
+ * @param  {object} query_ob Object representing the query
+ * @return {string}          Where clause
+ * @protected
+ */
 BaseModel._create_where_clause = function(query_ob){
     var query_relations = [];
     for(var k in query_ob){
@@ -348,6 +399,13 @@ BaseModel._create_where_clause = function(query_ob){
     return query_relations.length > 0 ? util.format('WHERE %s',query_relations.join(' AND ')) : '';
 };
 
+/**
+ * Given a complete query object, generate the SELECT query
+ * @param  {object} query_ob Object representing the query
+ * @param  {object} options  Options for the query. Unused right now 
+ * @return {string}          Select statement
+ * @protected
+ */
 BaseModel._create_find_query = function(query_ob, options){
     var query_relations = [],
         order_keys = [],
@@ -401,21 +459,6 @@ BaseModel._create_find_query = function(query_ob, options){
 
 /* Static Public ---------------------------------------- */
 
-BaseModel.set_properties = function(properties){
-    var schema = properties.schema,
-        cql = properties.cql,
-        table_name = schema.table_name || properties.name;
-
-    if(!check_db_tablename(table_name))
-        throw("Nomi tabella: caratteri validi alfanumerici ed underscore, devono cominciare per lettera");  
-
-    var qualified_table_name = cql.options.keyspace+'.'+table_name;
-
-    this._properties = properties;
-    this._properties.table_name = table_name;
-    this._properties.qualified_table_name = qualified_table_name;
-};
-
 /**
  * Return true if data related to model is initialized on cassandra
  * @return {Boolean} The ready state
@@ -428,7 +471,7 @@ BaseModel.is_table_ready = function(){
 /**
  * Initialize data related to this model
  * @param  {object}   options  Options
- * @param   BaseModel~QueryExecution} callback Called on init end
+ * @param  {BaseModel~QueryExecution} callback Called on init end
  */
 BaseModel.init = function(options, callback){
     if(!callback){
@@ -453,17 +496,35 @@ BaseModel.init = function(options, callback){
     }
 };
 
+/**
+ * Execute a generic query
+ * @param  {string}                         query - Query to execute
+ * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
+ * @param  {BaseModel~QueryExecution}       callback - Called on execution end
+ */
+BaseModel.execute_query = function(query, params, consistency, callback){
+    this._ensure_connected(function(err){
+        if(err) return callback(err);
+        this._properties.cql.execute(query, params, cql_consistencies[consistency], callback);
+    }.bind(this));    
+};
 
-BaseModel.execute_query = function(query, consistency, callback){
+/**
+ * Execute a generic query
+ * @param  {string}                         query - Query to execute
+ * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
+ * @param  {BaseModel~QueryExecution}       callback - Called on execution end
+ */
+BaseModel.execute_prepared_query = function(query, consistency, callback){
     this._properties.cql.execute(query, cql_consistencies[consistency], callback);
 };
 
 
 /**
  * Execute a search on Cassandra for row of this Model
- * @param  {object}   query_ob The query objcet
- * @param  {BaseModel~find_options}   [options]  Option for this find query
- * @param  {BaseModel~QueryExecution} callback Data retrieved
+ * @param  {object}                   query_ob - The query objcet
+ * @param  {BaseModel~find_options}   [options] - Option for this find query
+ * @param  {BaseModel~QueryExecution} callback - Data retrieved
  */
 BaseModel.find = function(query_ob, options, callback){
     if(arguments.length == 2){
@@ -509,9 +570,9 @@ BaseModel.find = function(query_ob, options, callback){
 
 /**
  * Delete entry on database
- * @param  {object}   query_ob The query object for deletion
- * @param  {BaseModel~delete_options}   [options]  Option for this delete query
- * @param  {BaseModel~GenericCallback} callback Data retrieved
+ * @param  {object}                     query_ob - The query object for deletion
+ * @param  {BaseModel~delete_options}   [options] - Option for this delete query
+ * @param  {BaseModel~GenericCallback}  callback - Data retrieved
  */
 BaseModel.delete = function(query_ob, options, callback){
     if(arguments.length == 2){
@@ -546,8 +607,8 @@ BaseModel.delete = function(query_ob, options, callback){
 
 /**
  * Save this instance of the model
- * @param  {object}   options  options for the query
- * @param  {BaseModel~QueryExecution} callback Result of the save or an error eventually
+ * @param  {object}                     [options={}] - options for the query
+ * @param  {BaseModel~QueryExecution}   callback - Result of the save or an error eventually
  * @instance
  */
 BaseModel.prototype.save = function(options, callback){
@@ -594,8 +655,8 @@ BaseModel.prototype.save = function(options, callback){
 
 /**
  * Delete this entry on database
- * @param  {BaseModel~delete_options}   [options]  Option for this delete query
- * @param  {BaseModel~GenericCallback} callback Data retrieved
+ * @param  {BaseModel~delete_options}   [options={}] - Option for this delete query
+ * @param  {BaseModel~GenericCallback}  callback - Data retrieved
  */
 BaseModel.prototype.delete = function(options, callback){
     if(arguments.length == 1){
@@ -634,7 +695,7 @@ module.exports = BaseModel;
  */
 
 /**
-  * Options for find operation
-  * @typedef {Object} BaseModel~find_options
-  * @property {boolean} [raw=false] - Returns raw result instead of instances of your model
+* Options for find operation
+* @typedef {Object} BaseModel~find_options
+* @property {boolean} [raw=false] - Returns raw result instead of instances of your model
 */
