@@ -151,7 +151,7 @@ Apollo.prototype = {
 
         schemer.normalize_model_schema(model_schema);
         schemer.validate_model_schema(model_schema);
-
+        
         var base_properties = {
             name : model_name,
             schema : model_schema,

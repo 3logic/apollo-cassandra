@@ -136,16 +136,16 @@ BaseModel._create_table = function(callback){
 
     //controllo esistenza della tabella ed eventuale corrispondenza con lo schema
     this._get_db_table_schema(function(err,db_schema){
-        //console.log('get schema', arguments);
+        
         if(err) return callback(err);
 
         var after_dbcreate = function(err, result){
-            //console.log('after create', arguments);
+           
             if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
             //creazione indici  
             if(model_schema.indexes instanceof Array)
                 async.eachSeries(model_schema.indexes, function(idx,next){
-                    //console.log(this._create_index_query(table_name,idx));
+                    
                     this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
                         else
@@ -156,31 +156,25 @@ BaseModel._create_table = function(callback){
                 callback();
         }.bind(this);      
 
-
         if (db_schema){// check if schemas match
-
             schemer.normalize_model_schema(model_schema);     
-            schemer.normalize_model_schema(db_schema);     
-
+            schemer.normalize_model_schema(db_schema); 
             if (!lodash.isEqual(model_schema, db_schema)){
-                //console.log('mismatch', model_schema, db_schema);
+                
                 if(mismatch_behaviour === 'drop'){
                     this._drop_table(function(err,result){
-                        //console.log('after drop', arguments);
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
-                        //console.log(this._create_table_query(table_name,model_schema));
                         //cql.execute(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                         this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                       
                     }.bind(this));
-                } else
+                } else{
                     return callback(build_error('model.tablecreation.schemamismatch', table_name));
+                }
             }
             else callback();               
         }
         else{  // if not existing, it's created anew
-            //console.log('create'); 
-
             //cql.execute(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
             this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
         }
@@ -312,7 +306,10 @@ BaseModel._execute_table_query = function(query, consistency, callback){
         do_execute_query(callback);
     }
     else{
-        this.init(function(){
+        this.init(function(err){
+            if(err){
+                return callback(err);
+            }        
             do_execute_query(callback);
         });
     }
