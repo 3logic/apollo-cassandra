@@ -145,7 +145,6 @@ BaseModel._create_table = function(callback){
             //creazione indici  
             if(model_schema.indexes instanceof Array)
                 async.eachSeries(model_schema.indexes, function(idx,next){
-                    
                     this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
                         else
@@ -162,7 +161,7 @@ BaseModel._create_table = function(callback){
             if (!lodash.isEqual(model_schema, db_schema)){
                 
                 if(mismatch_behaviour === 'drop'){
-                    this._drop_table(function(err,result){
+                    this.drop_table(function(err,result){
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
                         //cql.execute(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                         this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
@@ -184,9 +183,8 @@ BaseModel._create_table = function(callback){
 /**
  * Drop a table
  * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
- * @protected
  */
-BaseModel._drop_table = function(callback){
+BaseModel.drop_table = function(callback){
     var properties = this._properties,
         table_name = properties.table_name,
         cql = properties.cql;
@@ -485,13 +483,14 @@ BaseModel.init = function(options, callback){
     }
     
     var after_create = function(err, result){
+        console.log('created table', arguments);
         if(!err)
-            this._ready = true;  
+            this._ready = true;
         callback(err,result);
     }.bind(this);
 
     if(options && options.drop === true){
-        this._drop_table(function(err){
+        this.drop_table(function(err){
             if(err) {return callback(build_error('model.tablecreation.dbdrop',err));}
             this._create_table(after_create);
         });
