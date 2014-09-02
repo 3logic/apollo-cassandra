@@ -109,10 +109,14 @@ BaseModel._ensure_connected = function(callback){
  * @static
  */
 BaseModel._execute_definition_query = function(query, params, consistency, callback){
-    this._ensure_connected(function(){
+    this._ensure_connected(function(err){
+        if(err){
+            return callback(err);
+        }
         var properties = this._properties,
             conn = properties.define_connection;
         conn.open(function(){
+            consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
             conn.execute(query, params, consistency, callback);
         });
     }.bind(this));    
@@ -136,10 +140,11 @@ BaseModel._create_table = function(callback){
 
     //check for existence of table on DB and if it matches this model's schema
     this._get_db_table_schema(function(err,db_schema){
-        //console.log('get schema', arguments);
+        
         if(err) return callback(err);
 
         var after_dbcreate = function(err, result){
+
             if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
             //index creation
             if(model_schema.indexes instanceof Array)
@@ -154,22 +159,20 @@ BaseModel._create_table = function(callback){
                 callback();
         }.bind(this);      
 
-
         if (db_schema){// check if schemas match
-
             schemer.normalize_model_schema(model_schema);     
-            schemer.normalize_model_schema(db_schema);     
-
+            schemer.normalize_model_schema(db_schema); 
             if (!lodash.isEqual(model_schema, db_schema)){
                 //console.log('mismatch', model_schema, '<>', db_schema);
                 if(mismatch_behaviour === 'drop'){
-                    this._drop_table(function(err,result){
+                    this.drop_table(function(err,result){
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
                         this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                       
                     }.bind(this));
-                } else
+                } else{
                     return callback(build_error('model.tablecreation.schemamismatch', table_name));
+                }
             }
             else callback();               
         }
@@ -178,21 +181,6 @@ BaseModel._create_table = function(callback){
             this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
         }
     }.bind(this));
-};
-
-/**
- * Drop a table
- * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
- * @protected
- */
-BaseModel._drop_table = function(callback){
-    var properties = this._properties,
-        table_name = properties.table_name,
-        cql = properties.cql;
-
-    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
-    //console.log(query);
-    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
 };
 
 /**
@@ -305,7 +293,10 @@ BaseModel._execute_table_query = function(query, consistency, callback){
         do_execute_query(callback);
     }
     else{
-        this.init(function(){
+        this.init(function(err){
+            if(err){
+                return callback(err);
+            }        
             do_execute_query(callback);
         });
     }
@@ -473,6 +464,14 @@ BaseModel._create_find_query = function(query_ob, options){
 /* Static Public ---------------------------------------- */
 
 /**
+ * Restituisce il nome della tabella usato dal modello
+ * @return {string} Nome della tabella
+ */
+BaseModel.get_table_name = function(){
+    return this._properties.table_name;
+};
+
+/**
  * Return true if data related to model is initialized on cassandra
  * @return {Boolean} The ready state
  * @public
@@ -494,12 +493,12 @@ BaseModel.init = function(options, callback){
     
     var after_create = function(err, result){
         if(!err)
-            this._ready = true;  
+            this._ready = true;
         callback(err,result);
     }.bind(this);
 
     if(options && options.drop === true){
-        this._drop_table(function(err){
+        this.drop_table(function(err){
             if(err) {return callback(build_error('model.tablecreation.dbdrop',err));}
             this._create_table(after_create);
         });
@@ -516,9 +515,12 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
 BaseModel.execute_query = function(query, params, consistency, callback){
+    
     this._ensure_connected(function(err){
         if(err) return callback(err);
-        this._properties.cql.execute(query, params, cql_consistencies[consistency], callback);
+        consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
+        //console.log(query, params, consistency);
+        this._properties.cql.execute(query, params, consistency, callback);
     }.bind(this));    
 };
 
@@ -599,7 +601,7 @@ BaseModel.delete = function(query_ob, options, callback){
 
     options = lodash.defaults(options, defaults);
 
-    var query = 'DELETE FROM %s %s',
+    var query = 'DELETE FROM "%s" %s;',
         where = '';
     try{
         where = this._create_where_clause(query_ob, options);
@@ -608,12 +610,14 @@ BaseModel.delete = function(query_ob, options, callback){
         return callback(e);
     }
     query = util.format(query, this._properties.table_name, where);
+    
     this._execute_table_query(query, CONSISTENCY_DELETE, function(err,results){
-        if(err) return callback(build_error('model.find.dberror',err));
-        callback();
+        if(err) return callback(build_error('model.delete.dberror',err));
+        callback(null, results);
     });
 
 };
+
 
 /* Instance Private --------------------------------------------- */
 
@@ -633,7 +637,22 @@ BaseModel.prototype._get_default_value = function(fieldname){
         return undefined; 
 }
 
+
 /* Instance Public --------------------------------------------- */
+
+/**
+ * Drop table related to this model
+ * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
+ */
+BaseModel.drop_table = function(callback){
+    var properties = this._properties,
+        table_name = properties.table_name,
+        cql = properties.cql;
+
+    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
+    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
+    //cql.execute(query,[],cql_consistencies[CONSISTENCY_SAVE],callback);
+};
 
 /**
  * Save this instance of the model
@@ -646,7 +665,6 @@ BaseModel.prototype.save = function(options, callback){
         callback = options;
         options = undefined;
     }
-    callback = callback || noop;
 
     var identifiers = [], values = [],
         properties = this.constructor._properties,
@@ -687,8 +705,7 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    
-    this.constructor._execute_table_query(query,CONSISTENCY_SAVE,callback);
+    this.constructor._execute_table_query(query,cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
 /**
