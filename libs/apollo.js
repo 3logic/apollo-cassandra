@@ -8,6 +8,8 @@ var BaseModel = require('./base_model');
 var schemer = require('./apollo_schemer');
 var lodash = require("lodash");
 
+var DEFAULT_REPLICATION_FACTOR = 2;
+
 /**
  * Utilità per cassandra
  * @param {Apollo~Configuration} configuration configurazione di Apollo
@@ -18,7 +20,7 @@ var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
 
     this._options = options || { 
-        replication : {'class' : 'SimpleStrategy', 'replication_factor' : 1 }
+        placement : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
     };
     this._models = {};
     this._keyspace = connection.keyspace;
@@ -81,9 +83,9 @@ Apollo.prototype = {
             client = new cql.Client(temp_connection);
 
         var replication_text = '';
-        switch(options.replication.class){
+        switch(options.placement.class){
             case 'SimpleStrategy':
-                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.replication.replication_factor );
+                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.placement.replication_factor );
                 break;
             default:
                 replication_text = "{ 'class' : 'SimpleStrategy', 'replication_factor' : 1}";

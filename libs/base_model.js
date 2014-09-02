@@ -134,18 +134,16 @@ BaseModel._create_table = function(callback){
     
     var consistency = cql_consistencies[CONSISTENCY_DEFINE];
 
-    //controllo esistenza della tabella ed eventuale corrispondenza con lo schema
+    //check for existence of table on DB and if it matches this model's schema
     this._get_db_table_schema(function(err,db_schema){
         //console.log('get schema', arguments);
         if(err) return callback(err);
 
         var after_dbcreate = function(err, result){
-            //console.log('after create', arguments);
             if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
-            //creazione indici  
+            //index creation
             if(model_schema.indexes instanceof Array)
                 async.eachSeries(model_schema.indexes, function(idx,next){
-                    //console.log(this._create_index_query(table_name,idx));
                     this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
                         else
@@ -163,13 +161,10 @@ BaseModel._create_table = function(callback){
             schemer.normalize_model_schema(db_schema);     
 
             if (!lodash.isEqual(model_schema, db_schema)){
-                //console.log('mismatch', model_schema, db_schema);
+                //console.log('mismatch', model_schema, '<>', db_schema);
                 if(mismatch_behaviour === 'drop'){
                     this._drop_table(function(err,result){
-                        //console.log('after drop', arguments);
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
-                        //console.log(this._create_table_query(table_name,model_schema));
-                        //cql.execute(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                         this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
                       
                     }.bind(this));
@@ -179,9 +174,7 @@ BaseModel._create_table = function(callback){
             else callback();               
         }
         else{  // if not existing, it's created anew
-            //console.log('create'); 
-
-            //cql.execute(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
+            //console.log('creating table '+table_name );
             this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
         }
     }.bind(this));
@@ -198,8 +191,8 @@ BaseModel._drop_table = function(callback){
         cql = properties.cql;
 
     var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
+    //console.log(query);
     this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
-    //cql.execute(query,[],cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
 /**
@@ -219,7 +212,7 @@ BaseModel._create_table_query = function(table_name,schema){
         clustering_key = schema.key.slice(1,schema.key.length);
 
     partition_key  = partition_key instanceof Array ? partition_key.join(",") : partition_key;
-    clustering_key = clustering_key.length ?  ','+clustering_key.join(",") : '';
+    clustering_key = clustering_key.length ? ','+clustering_key.join(",") : '';
 
     query = util.format(
         'CREATE TABLE IF NOT EXISTS  "%s" (%s , PRIMARY KEY((%s)%s));',
@@ -228,7 +221,7 @@ BaseModel._create_table_query = function(table_name,schema){
         partition_key,
         clustering_key
     );
-
+    //console.log(query);
     return query;
 };
 
@@ -319,17 +312,26 @@ BaseModel._execute_table_query = function(query, consistency, callback){
 
 };
 
+
 /**
  * Given a field name and a value, format the query portion regarding that value
- * @param  {string} fieldname  Name of the filed
- * @param  {string} fieldvalue Value of the filed
+ * @param  {string} fieldname  Name of the field
+ * @param  {string} fieldvalue Value of the field
  * @return {string}            String to be used in query
  * @protected
+ * @throws Error if invalid field value given its type
  */
-BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
-    var properties = this._properties,
-        schema = properties.schema,
-        fieldtype = schema.fields[fieldname];
+BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
+    var fieldtype = schemer.get_field_type(this._properties.schema, fieldname);
+
+    if(fieldvalue === null){
+        return 'NULL';
+    }
+
+    if(typeof fieldvalue == 'object'){
+        if(fieldvalue['$db_function'])
+            return fieldvalue['$db_function'];
+    }
 
     if(fieldvalue instanceof Array){
         var val = fieldvalue.map(function(v){
@@ -338,10 +340,17 @@ BaseModel._get_db_value_expression = function(fieldname,fieldvalue){
         return util.format('(%s)',val);
     }
 
-    if (fieldtype == 'text')                
+    if (fieldtype == 'text' || fieldtype == 'uuid')                
         return util.format("'%s'",fieldvalue);
-    else if(fieldvalue instanceof Date)
-        return util.format("'%s'",fieldvalue.toISOString().replace(/\..+/, ''));
+    else if (fieldtype == 'timestamp'){
+        //check if we can build a valid Date from the field value
+        if( !(fieldvalue instanceof Date) )
+            fieldvalue = new Date(fieldvalue);
+        if( isNaN( fieldvalue.getTime() ) )
+            throw(build_error('model.save.invalidvalue',fieldvalue,fieldname,fieldtype));
+
+        return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");   
+    }
     //blob data are passed through strings
     else if(fieldtype == 'blob')
         return util.format("textAsBlob('%s')",fieldvalue.toString());
@@ -453,8 +462,12 @@ BaseModel._create_find_query = function(query_ob, options){
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
+
+    //console.log(query);
     return query;
 };
+
+
 
 
 /* Static Public ---------------------------------------- */
@@ -547,7 +560,7 @@ BaseModel.find = function(query_ob, options, callback){
     catch(e){
         return callback(e);
     }
-
+    //console.log(query);
     this._execute_table_query(query, CONSISTENCY_FIND, function(err,results){
         if(err) return callback(build_error('model.find.dberror',err));
         if(!options.raw){
@@ -602,6 +615,23 @@ BaseModel.delete = function(query_ob, options, callback){
 
 };
 
+/* Instance Private --------------------------------------------- */
+
+BaseModel.prototype._get_default_value = function(fieldname){
+    var properties = this.constructor._properties,
+        schema = properties.schema,
+        fieldtype = schemer.get_field_type(schema, fieldname);
+
+    if (typeof schema.fields[fieldname] == 'object' && schema.fields[fieldname].default){
+        if(typeof schema.fields[fieldname].default == 'function'){
+            return schema.fields[fieldname].default.call(this);
+        }
+        else
+            return schema.fields[fieldname].default;
+    }
+    else
+        return undefined; 
+}
 
 /* Instance Public --------------------------------------------- */
 
@@ -628,10 +658,13 @@ BaseModel.prototype.save = function(options, callback){
             fieldvalidator = TYPE_MAP[fieldtype].validator;
 
         if(!fieldvalue){
-            if(schema.key.indexOf(f) < 0 && schema.key[0].indexOf(f) < 0)
-                continue;
-            else
+            if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
                 return callback(build_error('model.save.unsetkey',f));
+            else if (fieldvalue === undefined){
+                fieldvalue = this._get_default_value(f);
+                if(fieldvalue === undefined)
+                    continue;
+            }
         }
 
         if(!fieldvalidator(fieldvalue)){
@@ -640,7 +673,12 @@ BaseModel.prototype.save = function(options, callback){
 
         identifiers.push(f);
 
-        values.push(this.constructor._get_db_value_expression(f,fieldvalue));
+        try{
+            values.push(this.constructor._get_db_value_expression(f,fieldvalue));
+        }
+        catch(e){
+            return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+        }
     }
 
     var query = util.format(
