@@ -8,6 +8,8 @@ var BaseModel = require('./base_model');
 var schemer = require('./apollo_schemer');
 var lodash = require("lodash");
 
+var DEFAULT_REPLICATION_FACTOR = 1;
+
 /**
  * Utilità per cassandra
  * @param {Apollo~Configuration} configuration configurazione di Apollo
@@ -18,12 +20,11 @@ var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
 
     this._options = options || { 
-        replication : {'class' : 'SimpleStrategy', 'replication_factor' : 1 }
+        placement : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
     };
     this._models = {};
     this._keyspace = connection.keyspace;
     this._connection = connection;
-    
     this._client = null;
 };
 
@@ -62,28 +63,35 @@ Apollo.prototype = {
         return Model;
     },
 
+    _get_system_client : function(){
+        var copy_fields = ['hosts'],
+            temp_connection = {},
+            connection = this._connection;
+
+        for(var fk in copy_fields){
+            temp_connection[copy_fields[fk]] = connection[copy_fields[fk]];
+        }
+
+        return new cql.Client(temp_connection);
+    },
+
     /**
       * Ensure specified keyspace exists, try to create it otherwise
       * @param  {Apollo~GenericCallback} callback Called on keyspace assertion
       * @private
       */
     _assert_keyspace : function(callback){
-        var copy_fields = ['hosts'],
-            temp_connection = {},
-            connection = this._connection,
+        
+        var client = this._get_system_client();
+        var keyspace_name = this._connection.keyspace,
+            replication_text = '',
             options = this._options;
 
-        for(var fk in copy_fields){
-            temp_connection[copy_fields[fk]] = connection[copy_fields[fk]];
-        }
-
-        var keyspace_name = connection.keyspace,
-            client = new cql.Client(temp_connection);
-
         var replication_text = '';
-        switch(options.replication.class){
+        switch(options.placement.class){
+
             case 'SimpleStrategy':
-                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.replication.replication_factor );
+                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.placement.replication_factor );
                 break;
             default:
                 replication_text = "{ 'class' : 'SimpleStrategy', 'replication_factor' : 1}";
@@ -97,9 +105,47 @@ Apollo.prototype = {
             replication_text
         );
         client.execute(query, function(err,result){
-            client.shutdown();
-            callback(err,result);
+            client.shutdown(function(){
+                callback(err,result);
+            });            
         });
+    },
+
+    // _drop_keyspace : function(callback){
+
+    //     var client = this._get_system_client(),
+    //         keyspace_name = this._connection.keyspace,
+    //         query = util.format(
+    //             "DROP KEYSPACE IF EXISTS %s;",
+    //             keyspace_name
+    //         );
+        
+    //     client.execute(query, function(err,result){
+    //         if(err){
+    //             return callback(err);
+    //         }
+           
+    //         this._set_client(null);
+    //         client.shutdown(function(e){
+    //             if(e){
+    //                 return callback(e);
+    //             }
+    //             callback(err,result);
+    //         });            
+    //     }.bind(this));
+    // },
+
+    _set_client : function(client){
+        var options = lodash.clone(this._connection);
+            options.host = options.hosts[0];
+
+        this._client = client;
+        this._define_connection = new cql.Connection(options);
+        //Reset connections on all models
+        for(var i in this._models){
+            this._models[i]._properties.cql = this._client;
+            this._models[i]._properties.define_connection = this._define_connection;
+        }
     },
 
 
@@ -110,18 +156,7 @@ Apollo.prototype = {
     connect : function(callback){
         var on_keyspace = function(err){
             if(err){ return callback(err);}
-            this._client = new cql.Client(this._connection);
-
-            var options = lodash.clone(this._connection);
-            options.host = options.hosts[0];
-            this._define_connection = new cql.Connection(options);
-
-            //Reset connections on all models
-            for(var i in this._models){
-                this._models[i]._properties.cql = this._client;
-                this._models[i]._properties.define_connection = this._define_connection;
-            }
-            
+            this._set_client(new cql.Client(this._connection));
             callback(null, this);
         };
 
@@ -151,7 +186,7 @@ Apollo.prototype = {
 
         schemer.normalize_model_schema(model_schema);
         schemer.validate_model_schema(model_schema);
-
+        
         var base_properties = {
             name : model_name,
             schema : model_schema,
@@ -227,7 +262,14 @@ Apollo.prototype = {
         if(!this._client){
             return callback();
         }
-        this._client.shutdown(callback);
+        this._client.shutdown(function(err){
+            if(!this._define_connection){
+                return callback(err);
+            }
+            this._define_connection.close(function(derr){
+                callback(err || derr);
+            });
+        }.bind(this));
     }
 };
 

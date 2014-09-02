@@ -48,6 +48,9 @@ var schemer = {
                 throw("Partition Key as string must match a column name");
         }
         else if(model_schema.key[0] instanceof Array){
+            if(model_schema.key[0].length == 0){
+                 throw("Partition Key array can't be empty");
+            }
             for(var j in model_schema.key[0]){
                 if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
                         throw("Partition Key array must contain only column names");
@@ -71,6 +74,18 @@ var schemer = {
                 if((typeof(model_schema.indexes[l]) != "string") || !(model_schema.indexes[l] in model_schema.fields))
                     throw("Indexes must be an array of column name strings");
         }
+    },
+
+    get_field_type: function(model_schema, fieldname){
+        var fieldob = model_schema.fields[fieldname];    
+
+        if(typeof fieldob == 'string')
+            return fieldob;
+        else if(typeof fieldob == 'object'){
+            return fieldob['type'];
+        }
+        else
+            return undefined;
     }
 };
 
