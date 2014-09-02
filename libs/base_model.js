@@ -7,7 +7,7 @@ var util = require('util'),
 
 var CONSISTENCY_FIND   = 'one',
     CONSISTENCY_SAVE   = 'one',
-    CONSISTENCY_DEFINE = 'one',
+    CONSISTENCY_DEFINE = 'all',
     CONSISTENCY_DELETE = 'one',
     CONSISTENCY_DEFAULT = 'one';
 
@@ -109,6 +109,7 @@ BaseModel._ensure_connected = function(callback){
  * @static
  */
 BaseModel._execute_definition_query = function(query, params, consistency, callback){
+    console.log('defined',query);
     this._ensure_connected(function(){
         var properties = this._properties,
             conn = properties.define_connection;
@@ -180,19 +181,6 @@ BaseModel._create_table = function(callback){
     }.bind(this));
 };
 
-/**
- * Drop a table
- * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
- */
-BaseModel.drop_table = function(callback){
-    var properties = this._properties,
-        table_name = properties.table_name,
-        cql = properties.cql;
-
-    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
-    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
-    //cql.execute(query,[],cql_consistencies[CONSISTENCY_SAVE],callback);
-};
 
 /**
  * Generate a query to create this model table 
@@ -297,6 +285,7 @@ BaseModel._get_db_table_schema = function (callback){
 BaseModel._execute_table_query = function(query, consistency, callback){
     
     var do_execute_query = function(doquery,docallback){
+        consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
         this.execute_query(doquery, null, consistency, docallback);
     }.bind(this,query);
 
@@ -483,7 +472,6 @@ BaseModel.init = function(options, callback){
     }
     
     var after_create = function(err, result){
-        console.log('created table', arguments);
         if(!err)
             this._ready = true;
         callback(err,result);
@@ -507,6 +495,7 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
 BaseModel.execute_query = function(query, params, consistency, callback){
+    console.log(query);
     this._ensure_connected(function(err){
         if(err) return callback(err);
         this._properties.cql.execute(query, params, cql_consistencies[consistency], callback);
@@ -606,6 +595,20 @@ BaseModel.delete = function(query_ob, options, callback){
 
 };
 
+/**
+ * Drop table related to this model
+ * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
+ */
+BaseModel.drop_table = function(callback){
+    var properties = this._properties,
+        table_name = properties.table_name,
+        cql = properties.cql;
+
+    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
+    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
+    //cql.execute(query,[],cql_consistencies[CONSISTENCY_SAVE],callback);
+};
+
 
 /* Instance Public --------------------------------------------- */
 
@@ -620,7 +623,6 @@ BaseModel.prototype.save = function(options, callback){
         callback = options;
         options = undefined;
     }
-    callback = callback || noop;
 
     var identifiers = [], values = [],
         properties = this.constructor._properties,
@@ -653,8 +655,8 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    
-    this.constructor._execute_table_query(query,CONSISTENCY_SAVE,callback);
+    console.log(query);
+    this.constructor._execute_table_query(query,cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
 /**
