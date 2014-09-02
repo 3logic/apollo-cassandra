@@ -7,7 +7,7 @@ var util = require('util'),
 
 var CONSISTENCY_FIND   = 'one',
     CONSISTENCY_SAVE   = 'one',
-    CONSISTENCY_DEFINE = 'all',
+    CONSISTENCY_DEFINE = 'one',
     CONSISTENCY_DELETE = 'one',
     CONSISTENCY_DEFAULT = 'one';
 
@@ -109,11 +109,14 @@ BaseModel._ensure_connected = function(callback){
  * @static
  */
 BaseModel._execute_definition_query = function(query, params, consistency, callback){
-    console.log('defined',query);
-    this._ensure_connected(function(){
+    this._ensure_connected(function(err){
+        if(err){
+            return callback(err);
+        }
         var properties = this._properties,
             conn = properties.define_connection;
         conn.open(function(){
+            consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
             conn.execute(query, params, consistency, callback);
         });
     }.bind(this));    
@@ -285,7 +288,6 @@ BaseModel._get_db_table_schema = function (callback){
 BaseModel._execute_table_query = function(query, consistency, callback){
     
     var do_execute_query = function(doquery,docallback){
-        consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
         this.execute_query(doquery, null, consistency, docallback);
     }.bind(this,query);
 
@@ -495,10 +497,12 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
 BaseModel.execute_query = function(query, params, consistency, callback){
-    console.log(query);
+    
     this._ensure_connected(function(err){
         if(err) return callback(err);
-        this._properties.cql.execute(query, params, cql_consistencies[consistency], callback);
+        consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
+        //console.log(query, params, consistency);
+        this._properties.cql.execute(query, params, consistency, callback);
     }.bind(this));    
 };
 
@@ -579,7 +583,7 @@ BaseModel.delete = function(query_ob, options, callback){
 
     options = lodash.defaults(options, defaults);
 
-    var query = 'DELETE FROM %s %s',
+    var query = 'DELETE FROM "%s" %s;',
         where = '';
     try{
         where = this._create_where_clause(query_ob, options);
@@ -588,9 +592,10 @@ BaseModel.delete = function(query_ob, options, callback){
         return callback(e);
     }
     query = util.format(query, this._properties.table_name, where);
+    
     this._execute_table_query(query, CONSISTENCY_DELETE, function(err,results){
-        if(err) return callback(build_error('model.find.dberror',err));
-        callback();
+        if(err) return callback(build_error('model.delete.dberror',err));
+        callback(null, results);
     });
 
 };
@@ -655,7 +660,6 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    console.log(query);
     this.constructor._execute_table_query(query,cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
