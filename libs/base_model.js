@@ -555,7 +555,8 @@ BaseModel.find = function(query_ob, options, callback){
         throw 'Callback needed!';
 
     var defaults = {
-        raw : false
+        raw : false,
+        consistency : CONSISTENCY_FIND
     };
 
     options = lodash.defaults(options, defaults);
@@ -568,7 +569,7 @@ BaseModel.find = function(query_ob, options, callback){
         return callback(e);
     }
     //console.log(query);
-    this._execute_table_query(query, null, CONSISTENCY_FIND, function(err,results){
+    this._execute_table_query(query, null, options.consistency, function(err,results){
         if(err) return callback(build_error('model.find.dberror',err));
         if(!options.raw){
             var ModelConstructor = this._properties.get_constructor();
@@ -602,7 +603,9 @@ BaseModel.delete = function(query_ob, options, callback){
     if(!callback)
         throw 'Callback needed!';
 
-    var defaults = {};
+    var defaults = {
+        consistency : CONSISTENCY_DELETE
+    };
 
     options = lodash.defaults(options, defaults);
 
@@ -615,7 +618,7 @@ BaseModel.delete = function(query_ob, options, callback){
         return callback(e);
     }
     query = util.format(query, this._properties.table_name, where);
-    this._execute_table_query(query, null, CONSISTENCY_DELETE, function(err,results){
+    this._execute_table_query(query, null, options.consistency, function(err,results){
         if(err) return callback(build_error('model.delete.dberror',err));
         callback(null, results);
     });
