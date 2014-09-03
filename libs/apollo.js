@@ -10,6 +10,8 @@ var lodash = require("lodash");
 
 var DEFAULT_REPLICATION_FACTOR = 1;
 
+var noop = function(){};
+
 /**
  * Utilità per cassandra
  * @param {Apollo~Configuration} configuration configurazione di Apollo
@@ -94,7 +96,7 @@ Apollo.prototype = {
                 replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.placement.replication_factor );
                 break;
             default:
-                replication_text = "{ 'class' : 'SimpleStrategy', 'replication_factor' : 1}";
+                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}",DEFAULT_REPLICATION_FACTOR);
                 break;
 
         }
@@ -138,9 +140,13 @@ Apollo.prototype = {
     _set_client : function(client){
         var options = lodash.clone(this._connection);
             options.host = options.hosts[0];
-
+            
         this._client = client;
         this._define_connection = new cql.Connection(options);
+
+        /*this._client.on('log',function(level, message){
+            console.log(message);
+        });*/
         //Reset connections on all models
         for(var i in this._models){
             this._models[i]._properties.cql = this._client;
@@ -210,55 +216,14 @@ Apollo.prototype = {
         return this._models[model_name] || null;
     },
 
-    /**
-     * Stringa di update da utilizzare in PIG nel formato:
-     * ‘cql://myschema/example?output_query=update example set value1 @ #,value2 @ #’ 
-     *
-     * @param  {string} model_name Nome del modello precedentemente registrato
-     * @param  {bool} encode     Indica che se la strigna deve essere in URL encode o meno
-     * @return {string}            Strigna per PIg
-     * @ignore
-     */
-    pig_cql_update_connection : function(model_name, encode, callback){
-        if ( !(model_name in this._models) || !this._models[model_name])
-            return callback("Modello non conosciuto");
-
-        //prima parte delal stringa
-        var cqlstring = "cql://" + this._keyspace + "/" + model_name + "?";
-        //inizio update
-        var cqlquerystring = {output_query: "update " + this._keyspace + "." + model_name + " set "};
-
-        //aggiunta delle colonne
-        var values = [];
-        for (var f in this._models[model_name].fields)
-            values.push(f + " @ #");
-        cqlquerystring.output_query += values.join(" , ");
-        //inserimento della seconda parte in versione encode o meno a seconda della richeista
-        if (encode)
-            cqlstring +=  querystring.stringify(cqlquerystring);
-        else
-            cqlstring += "output_query=" + cqlquerystring.output_query;
-        return callback(null,cqlstring);
-
-    },
-
-    /**
-     * Connessione per lettura da cassandra in pig
-     * @param  {string} keyspace Keyspace della tabella
-     * @param  {string} table    nome della tabella
-     * @return {string}          stringa di connessione
-     * @ignore
-     */
-    pig_cql_connection : function(keyspace,table){
-        var cqlstring = "cql://" + keyspace + "/" + table + "?";       
-        return cqlstring;
-    },
-
+    
     /**
      * Chiusura della connessione
      * @param  {Function} callback callback
      */
     close : function(callback){ 
+        callback = callback || noop;
+
         if(!this._client){
             return callback();
         }

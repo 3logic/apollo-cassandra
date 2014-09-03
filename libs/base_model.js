@@ -160,14 +160,15 @@ BaseModel._create_table = function(callback){
         }.bind(this);      
 
         if (db_schema){// check if schemas match
-            schemer.normalize_model_schema(model_schema);     
-            schemer.normalize_model_schema(db_schema); 
-            if (!lodash.isEqual(model_schema, db_schema)){
-                //console.log('mismatch', model_schema, '<>', db_schema);
+            var normalized_model_schema = schemer.normalize_model_schema(model_schema),     
+                normalized_db_schema = schemer.normalize_model_schema(db_schema); 
+
+            if (!lodash.isEqual(normalized_model_schema, normalized_db_schema)){
                 if(mismatch_behaviour === 'drop'){
                     this.drop_table(function(err,result){
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
-                        this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
+                        var  create_query = this._create_table_query(table_name,model_schema);
+                        this._execute_definition_query(create_query, [], consistency, after_dbcreate);
                       
                     }.bind(this));
                 } else{
@@ -178,7 +179,9 @@ BaseModel._create_table = function(callback){
         }
         else{  // if not existing, it's created anew
             //console.log('creating table '+table_name );
-            this._execute_definition_query(this._create_table_query(table_name,model_schema), [], consistency, after_dbcreate);
+            var  create_query = this._create_table_query(table_name,model_schema);
+            //console.log(create_query);
+            this._execute_definition_query(create_query, [], consistency, after_dbcreate);
         }
     }.bind(this));
 };
@@ -192,9 +195,12 @@ BaseModel._create_table = function(callback){
  */
 BaseModel._create_table_query = function(table_name,schema){
     //creazione tabella
-    var rows = [];
-    for(var k in schema.fields)
-        rows.push(k + " " + schema.fields[k]);
+    var rows = [],
+        field_type;
+    for(var k in schema.fields){
+        field_type = schemer.get_field_type(schema, k);
+        rows.push(k + " " + field_type);
+    }
 
     var partition_key = schema.key[0],
         clustering_key = schema.key.slice(1,schema.key.length);
@@ -243,11 +249,10 @@ BaseModel._get_db_table_schema = function (callback){
     var query = "SELECT * FROM system.schema_columns WHERE columnfamily_name = ? AND keyspace_name = ? ALLOW FILTERING;";
 
     this.execute_query(query,[table_name,keyspace], null, function(err, result) {
-
         if (err) return callback(build_error('model.tablecreation.dbschemaquery', err));
 
         if(!result.rows || result.rows.length === 0)
-            return callback();
+            return callback(null, null);
 
         var db_schema = {fields:{}};
         for(var r in result.rows){
@@ -283,10 +288,11 @@ BaseModel._get_db_table_schema = function (callback){
  * @param  {BaseModel~QueryExecution} callback  Callback with err and result
  * @protected
  */
-BaseModel._execute_table_query = function(query, consistency, callback){
-    
+//BaseModel._execute_table_query = BaseModel._execute_definition_query;
+BaseModel._execute_table_query = function(query, params, consistency, callback){
+
     var do_execute_query = function(doquery,docallback){
-        this.execute_query(doquery, null, consistency, docallback);
+        this.execute_query(doquery, params, consistency, docallback);
     }.bind(this,query);
 
     if(this.is_table_ready()){
@@ -519,7 +525,6 @@ BaseModel.execute_query = function(query, params, consistency, callback){
     this._ensure_connected(function(err){
         if(err) return callback(err);
         consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
-        //console.log(query, params, consistency);
         this._properties.cql.execute(query, params, consistency, callback);
     }.bind(this));    
 };
@@ -563,7 +568,7 @@ BaseModel.find = function(query_ob, options, callback){
         return callback(e);
     }
     //console.log(query);
-    this._execute_table_query(query, CONSISTENCY_FIND, function(err,results){
+    this._execute_table_query(query, null, CONSISTENCY_FIND, function(err,results){
         if(err) return callback(build_error('model.find.dberror',err));
         if(!options.raw){
             var ModelConstructor = this._properties.get_constructor();
@@ -610,8 +615,7 @@ BaseModel.delete = function(query_ob, options, callback){
         return callback(e);
     }
     query = util.format(query, this._properties.table_name, where);
-    
-    this._execute_table_query(query, CONSISTENCY_DELETE, function(err,results){
+    this._execute_table_query(query, null, CONSISTENCY_DELETE, function(err,results){
         if(err) return callback(build_error('model.delete.dberror',err));
         callback(null, results);
     });
@@ -671,7 +675,10 @@ BaseModel.prototype.save = function(options, callback){
         schema = properties.schema;
 
     for(var f in schema.fields){
-        var fieldtype = schema.fields[f],
+
+        // check field value
+        
+        var fieldtype = schemer.get_field_type(schema,f),
             fieldvalue = this[f],
             fieldvalidator = TYPE_MAP[fieldtype].validator;
 
@@ -685,8 +692,15 @@ BaseModel.prototype.save = function(options, callback){
             }
         }
 
-        if(!fieldvalidator(fieldvalue)){
-            return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+        if(fieldvalue!==null){
+            if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
+                if(!fieldvalue['$db_function']){
+                    return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+                }
+            }
+            else if(!fieldvalidator(fieldvalue)){
+                return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+            }
         }
 
         identifiers.push(f);
@@ -705,7 +719,7 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    this.constructor._execute_table_query(query,cql_consistencies[CONSISTENCY_SAVE],callback);
+    this.constructor._execute_table_query(query, null, cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
 /**

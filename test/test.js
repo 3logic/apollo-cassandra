@@ -60,7 +60,7 @@ describe('Apollo > ', function(){
             ap.connect(function(err){      
                 if(err) return done(err);      
                 var BaseModel = ap.add_model("test1", model_test1);
-                BaseModel._drop_table(done);
+                BaseModel.drop_table(done);
             });
         });
 
@@ -128,7 +128,7 @@ describe('Apollo > ', function(){
             
             beforeEach(function(done) {
                 var BaseModel = ap.add_model("test1", model_test1);
-                BaseModel._drop_table(function(err){
+                BaseModel.drop_table(function(err){
                     if(err) return done(err);
                     BaseModel.init(done);
                 });
@@ -220,6 +220,152 @@ describe('Apollo > ', function(){
                 });
             });
 
+            it('successful save with default fields (value)', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 500});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 500}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            assert.propertyVal(results[0],'v2', 42);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
+            it('successful save with default fields, value given', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 500, 'v2':40});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 500}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            assert.propertyVal(results[0],'v2', 40);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
+
+            it('successful save with default fields, null value given', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 500, 'v2':null});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 500}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            assert.isNull(results[0].v2);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
+            it('successful save with default fields (js function)', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: function(){return 43}}, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 501});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 501}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            assert.propertyVal(results[0],'v2', 43);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
+            it('successful save with default fields (db function)', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:"int", v3:{type:"uuid",default:{"$db_function":"uuid()"}} }, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def,{'mismatch_behaviour':'drop'});
+
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 502});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 502}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            //assert.propertyVal(results[0],'v2', 43);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
+
+            it('successful save with default fields (js function on isntance fields)', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2} }, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 501});
+                    ins.save(function(err,result){
+                        assert.notOk(err);
+                        TestModelDef.find({'v1': 501}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 1);
+                            assert.propertyVal(results[0],'v2', 1002);
+                            done();
+                        });
+                    });
+                });
+                
+            });
+
         });
 
         describe('Find > ',function(){
@@ -235,7 +381,7 @@ describe('Apollo > ', function(){
                 this.timeout(15000);
 
                 TestModel = ap.add_model("test_find", model_find_schema, {'mismatch_behaviour':'drop'});
-                //TestModel._drop_table(done);
+                //TestModel.drop_table(done);
                 
                 TestModel.init(function(err,result){
 
@@ -434,20 +580,6 @@ describe('Apollo > ', function(){
             });
 
         });
-
-
-        it.skip('pig update', function(done){
-            ap.add_model("test1", model_test1, true, function(err,data){
-                ap.pig_cql_update_connection("test1",true, function(err,data){
-                    if(err) 
-                        console.log('err: '+err);
-                    else 
-                        console.log(data);
-                    done();
-                });
-            });
-        });
-
 
     });
 
