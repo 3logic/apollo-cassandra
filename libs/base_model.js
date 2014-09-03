@@ -770,4 +770,11 @@ module.exports = BaseModel;
 * Options for find operation
 * @typedef {Object} BaseModel~find_options
 * @property {boolean} [raw=false] - Returns raw result instead of instances of your model
+* @property {string} [consistency=CONSISTENCY_FIND] - Define consistency for this operation
+*/
+
+/**
+* Options for delete operation
+* @typedef {Object} BaseModel~delete_options
+* @property {string} [consistency=CONSISTENCY_DELETE] - Define consistency for this operation
 */
