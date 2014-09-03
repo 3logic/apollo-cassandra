@@ -1,4 +1,5 @@
-var TYPE_MAP = require('./cassandra_types');
+var TYPE_MAP = require('./cassandra_types'),
+    lodash = require('lodash');
 
 /*
     {
@@ -16,17 +17,29 @@ var TYPE_MAP = require('./cassandra_types');
 var schemer = {
 
     normalize_model_schema: function(model_schema){
-        if(typeof model_schema.key[0] === 'string'){
-            model_schema.key[0] = [model_schema.key[0]];
+        var output_schema = lodash.clone(model_schema,true);
+
+        for( var k in output_schema.fields){
+            if (typeof (output_schema.fields[k]) == 'string' )
+                output_schema.fields[k] = {'type':output_schema.fields[k]};
+            else {
+                delete output_schema.fields[k].default;
+            }
         }
 
-        if(model_schema.indexes){
+        if(typeof output_schema.key[0] === 'string'){
+            output_schema.key[0] = [output_schema.key[0]];
+        }
+
+        if(output_schema.indexes){
             var index_sort = function(a,b){
                 return a > b ? 1 : (a < b ? -1 : 0);
             };
 
-            model_schema.indexes.sort(index_sort);
+            output_schema.indexes.sort(index_sort);
         }
+
+        return output_schema;
     },
 
     validate_model_schema: function(model_schema){
@@ -39,8 +52,8 @@ var schemer = {
             throw('Schema must contain "key" in the form: [ [partitionkey1, ...], clusteringkey1, ...]');
 
         for( var k in model_schema.fields){
-            if (!(model_schema.fields[k] in TYPE_MAP))
-                throw("Schema Field type unknown for: " + k);
+            if (!(this.get_field_type(model_schema,k) in TYPE_MAP))
+                throw("Schema Field type unknown for: " + k+ "("+model_schema.fields[k].type+")");
         }
 
         if( typeof(model_schema.key[0]) == "string" ){
