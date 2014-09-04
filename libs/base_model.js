@@ -685,8 +685,12 @@ BaseModel.prototype.save = function(options, callback){
 
         if (fieldvalue === undefined){
             fieldvalue = this._get_default_value(f);
-            if(fieldvalue === undefined)
-                continue;
+            if(fieldvalue === undefined){
+                if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
+                    return callback(build_error('model.save.unsetkey',f));
+                else
+                    continue;
+            }
         }
 
         if(fieldvalue === null){
@@ -694,12 +698,14 @@ BaseModel.prototype.save = function(options, callback){
                 return callback(build_error('model.save.unsetkey',f));
         }
 
-        if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
-            if(!fieldvalue['$db_function'])
-             return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
-        } 
-        else if(!fieldvalidator(fieldvalue))
-            return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+        else {
+            if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
+                if(!fieldvalue['$db_function'])
+                    return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+            } 
+            else if(!fieldvalidator(fieldvalue))
+                return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
+        }
             
         identifiers.push(f);
 

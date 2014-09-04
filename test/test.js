@@ -295,7 +295,7 @@ describe('Apollo > ', function(){
 
             it('successful save with default fields (js function)', function(done){
                 var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: function(){return 43}}, v3:"uuid"}, 
+                    fields:{v1:"int",v2:{type: "int", default: function(){return 43;}}, v3:"uuid"}, 
                     key:["v1"],
                     indexes : ["v3"]
                 };

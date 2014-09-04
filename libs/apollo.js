@@ -190,7 +190,7 @@ Apollo.prototype = {
         if(options.mismatch_behaviour !== 'fail' && options.mismatch_behaviour !== 'drop')
             throw 'Valid option values for "mismatch_behaviour": "fail" , "drop". Got: "'+options.mismatch_behaviour+'"';
 
-        schemer.normalize_model_schema(model_schema);
+        //model_schema = schemer.normalize_model_schema(model_schema);
         schemer.validate_model_schema(model_schema);
         
         var base_properties = {

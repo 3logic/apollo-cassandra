@@ -18,8 +18,16 @@ var schemer = {
 
     normalize_model_schema: function(model_schema){
         var output_schema = lodash.clone(model_schema,true);
+        var good_fields = {fields : true, key:true, indexes:true};
+        for(var k in output_schema)
+            if(!(k in good_fields))
+                delete(output_schema[k]);
 
-        for( var k in output_schema.fields){
+        var index_sort = function(a,b){
+            return a > b ? 1 : (a < b ? -1 : 0);
+        };
+
+        for(k in output_schema.fields){
             if (typeof (output_schema.fields[k]) == 'string' )
                 output_schema.fields[k] = {'type':output_schema.fields[k]};
             else {
@@ -32,9 +40,7 @@ var schemer = {
         }
 
         if(output_schema.indexes){
-            var index_sort = function(a,b){
-                return a > b ? 1 : (a < b ? -1 : 0);
-            };
+            
 
             output_schema.indexes.sort(index_sort);
         }
