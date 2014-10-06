@@ -5,11 +5,11 @@ var util = require('util'),
     async = require('async'),
     lodash = require('lodash');
 
-var CONSISTENCY_FIND   = 'one',
-    CONSISTENCY_SAVE   = 'one',
-    CONSISTENCY_DEFINE = 'one',
-    CONSISTENCY_DELETE = 'one',
-    CONSISTENCY_DEFAULT = 'one';
+var CONSISTENCY_FIND   = 'quorum',
+    CONSISTENCY_SAVE   = 'quorum',
+    CONSISTENCY_DEFINE = 'quorum',
+    CONSISTENCY_DELETE = 'quorum',
+    CONSISTENCY_DEFAULT = 'quorum';
 
 /**
  * Consistency levels

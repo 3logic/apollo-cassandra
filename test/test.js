@@ -17,8 +17,8 @@ switch(process.env.TRAVIS){
     default:
         connection = {
             "hosts": [
-                "192.168.100.61",
-                "192.168.100.62"
+                "sh4.3logic.it",
+                "sh5.3logic.it"
             ],
             "keyspace": "tests"
         };
@@ -26,6 +26,8 @@ switch(process.env.TRAVIS){
 }
 
 describe('Apollo > ', function(){
+
+    this.timeout(5000);
     
     describe('Global library', function(){
 
@@ -559,6 +561,7 @@ describe('Apollo > ', function(){
             it('successful static delete', function(done){
                 TestModel.delete({'v1': 500}, function(err){
                     assert.notOk(err);
+
                     TestModel.find({'v1': 500}, function(err, results){
                         assert.notOk(err);
                         assert.lengthOf(results, 0);
