@@ -8,7 +8,7 @@ var connection;
 switch(process.env.TRAVIS){
     case 'true':
         connection = {
-            "hosts": [
+            "contactPoints": [
                 "127.0.0.1"
             ],
             "keyspace": "tests"
@@ -16,7 +16,7 @@ switch(process.env.TRAVIS){
         break;
     default:
         connection = {
-            "hosts": [
+            "contactPoints": [
                 "sh4.3logic.it",
                 "sh5.3logic.it"
             ],

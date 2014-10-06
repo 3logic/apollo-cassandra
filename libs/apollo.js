@@ -1,6 +1,6 @@
 //libreria di cassandra
 
-var cql = require("node-cassandra-cql");
+var cql = require("cassandra-driver");
 var async = require('async');
 var querystring = require("querystring");
 var util = require("util");
@@ -66,7 +66,7 @@ Apollo.prototype = {
     },
 
     _get_system_client : function(){
-        var copy_fields = ['hosts'],
+        var copy_fields = ['contactPoints'],
             temp_connection = {},
             connection = this._connection;
 
@@ -139,10 +139,10 @@ Apollo.prototype = {
 
     _set_client : function(client){
         var options = lodash.clone(this._connection);
-            options.host = options.hosts[0];
+            options.host = options.contactPoints[0];
             
         this._client = client;
-        this._define_connection = new cql.Connection(options);
+        this._define_connection = null;//new cql.Connection(options);
 
         /*this._client.on('log',function(level, message){
             console.log(message);

@@ -1,13 +1,13 @@
 var util = require('util'),
     build_error = require('./apollo_error.js'),
-    cql = require('node-cassandra-cql'),
+    cql = require('cassandra-driver'),
     schemer = require('./apollo_schemer'),
     async = require('async'),
     lodash = require('lodash');
 
 var CONSISTENCY_FIND   = 'quorum',
     CONSISTENCY_SAVE   = 'quorum',
-    CONSISTENCY_DEFINE = 'quorum',
+    CONSISTENCY_DEFINE = 'all',
     CONSISTENCY_DELETE = 'quorum',
     CONSISTENCY_DEFAULT = 'quorum';
 
@@ -109,6 +109,7 @@ BaseModel._ensure_connected = function(callback){
  * @static
  */
 BaseModel._execute_definition_query = function(query, params, consistency, callback){
+    return this.execute_query(query, params, consistency, callback);
     this._ensure_connected(function(err){
         if(err){
             return callback(err);
