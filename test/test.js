@@ -43,6 +43,7 @@ describe('Apollo > ', function(){
 
             it('connect to cassandra', function(done){
                 apollo.connect(done);
+                apollo.close();
             });
         });
     });
@@ -53,17 +54,24 @@ describe('Apollo > ', function(){
         var ap;
 
         beforeEach(function(done) {
+            var on_old_clinent_closed = function(){
+                ap = new Apollo(connection);
+                // Setup
+                ap.connect(function(err){      
+                    if(err) return done(err);      
+                    var BaseModel = ap.add_model("test1", model_test1);
+                    BaseModel.drop_table(done);
+                });
+            }
+
+
             if(ap)
-                ap.close();
+                ap.close(on_old_clinent_closed);
+            else{
+                on_old_clinent_closed();
+            }
 
-            ap = new Apollo(connection);
-
-            // Setup
-            ap.connect(function(err){      
-                if(err) return done(err);      
-                var BaseModel = ap.add_model("test1", model_test1);
-                BaseModel.drop_table(done);
-            });
+            
         });
 
         var model_test1 = { 
