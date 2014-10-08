@@ -363,22 +363,26 @@ BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
         return util.format('(%s)',val);
     }
 
-    if (fieldtype == 'text' || fieldtype == 'uuid')                
-        return util.format("'%s'",fieldvalue);
-    else if (fieldtype == 'timestamp'){
-        //check if we can build a valid Date from the field value
-        if( !(fieldvalue instanceof Date) )
-            fieldvalue = new Date(fieldvalue);
-        if( isNaN( fieldvalue.getTime() ) )
-            throw(build_error('model.save.invalidvalue',fieldvalue,fieldname,fieldtype));
+    switch(fieldtype){
+        case 'text':
+        case 'uuid':
+        case 'timeuuid':
+        case 'varchar':
+        case 'ascii':
+        case 'inet':
+            return util.format("'%s'",fieldvalue);
+        case 'timestamp':
+            if( !(fieldvalue instanceof Date) )
+                fieldvalue = new Date(fieldvalue);
+            if( isNaN( fieldvalue.getTime() ) )
+                throw(build_error('model.save.invalidvalue',fieldvalue,fieldname,fieldtype));
 
-        return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");   
+            return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");  
+        case 'blob':
+            return util.format("textAsBlob('%s')",fieldvalue.toString());
+        default:
+            return fieldvalue;
     }
-    //blob data are passed through strings
-    else if(fieldtype == 'blob')
-        return util.format("textAsBlob('%s')",fieldvalue.toString());
-    else
-        return fieldvalue;
 };
 
 /**
