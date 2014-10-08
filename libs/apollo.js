@@ -21,10 +21,10 @@ var noop = function(){};
  */
 var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
-
-    this._options = options || { 
-        placement : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
-    };
+    options = options || {};
+    this._options = lodash.defaults(options, { 
+        replication_strategy : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
+    });
     this._models = {};
     this._keyspace = connection.keyspace;
     this._connection = connection;
@@ -85,6 +85,24 @@ Apollo.prototype = {
     },
 
     /**
+     * Generate replication strategy text for keyspace creation query
+     * @param  {object|string} replication_option An object or a string representing replication strategy
+     * @return {string}                    Replication strategy text
+     * @private
+     */
+    _generate_replication_text : function(replication_option){
+        if( typeof replication_option == 'string'){
+            return replication_option;
+        }else{
+            var properties = [];
+            for(var k in replication_option){
+                properties.push(util.format("'%s': '%s'", k, replication_option[k] ));
+            }
+            return util.format('{%s}', properties.join(','));
+        }
+    },
+
+    /**
       * Ensure specified keyspace exists, try to create it otherwise
       * @param  {Apollo~GenericCallback} callback Called on keyspace assertion
       * @private
@@ -96,16 +114,7 @@ Apollo.prototype = {
             replication_text = '',
             options = this._options;
 
-        switch(options.placement.class){
-
-            case 'SimpleStrategy':
-                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.placement.replication_factor );
-                break;
-            default:
-                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}",DEFAULT_REPLICATION_FACTOR);
-                break;
-
-        }
+        replication_text = this._generate_replication_text(options.replication_strategy);
 
         var query = util.format(
             "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = %s;",
@@ -246,14 +255,8 @@ module.exports = Apollo;
 /**
  * Options for cassandra client
  * @typedef {Object} Apollo~CassandraOptions
- * @property {object} replication - replication configuration object
+ * @property {(object|string)} replication_strategy - replication strategy configuration object or string
  */
-
- /**
-  * Options for cassandra client
-  * @typedef {Object} Apollo~Configuration
-  * @property {Apollo~connection} connection - Configuration for connection of Cassandra client
-  */
 
 /**
  * Options for the model creation method
@@ -266,7 +269,7 @@ module.exports = Apollo;
  /**
   * Options for connection of Cassandra client
   * @typedef {Object}  Apollo~Connection
-  * @property {array}  hosts - Array of string in host:port format. Port is optional (default 9042).
+  * @property {array}  contactPoints - Array of string in host:port format. Port is optional (default 9042).
   * @property {string} keyspace - Name of keyspace to use.
   * @property {string} [username=null] - User for authentication.
   * @property {string} [password=null] - Password for authentication.
