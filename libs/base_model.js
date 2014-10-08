@@ -5,16 +5,17 @@ var util = require('util'),
     async = require('async'),
     lodash = require('lodash');
 
-//valid
-// any 
-// one        
-// two        
-// three      
-// quorum     
-// all        
-// localQuorum
-// eachQuorum 
-// localOne   
+/*
+Valid consistencies:
+any 
+one        
+two        
+three      
+quorum     
+all        
+localQuorum
+eachQuorum 
+localOne */  
 var CONSISTENCY_FIND   = 'quorum',
     CONSISTENCY_SAVE   = 'quorum',
     CONSISTENCY_DEFINE = 'all',
@@ -125,7 +126,7 @@ BaseModel._execute_definition_query = function(query, params, consistency, callb
         }
         var properties = this._properties,
             conn = properties.define_connection;
-        conn.execute(query, params, {'consistency': consistency}, callback);
+        conn.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
     }.bind(this));    
 };
 
@@ -482,7 +483,6 @@ BaseModel._create_find_query = function(query_ob, options){
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
-
     //console.log(query);
     return query;
 };
@@ -549,7 +549,7 @@ BaseModel.execute_query = function(query, params, consistency, callback){
         if(err) return callback(err);
         consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
         //console.log(query, params, {'consistency': consistency} );
-        this._properties.cql.execute(query, params, {'prepared': false, 'consistency': consistency}, callback);
+        this._properties.cql.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
     }.bind(this));    
 };
 
