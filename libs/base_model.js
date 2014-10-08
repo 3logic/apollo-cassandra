@@ -168,10 +168,9 @@ BaseModel._create_table = function(callback){
         if(err) return callback(err);
 
         var after_dbcreate = function(err, result){
-
             if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
             //index creation
-            if(model_schema.indexes instanceof Array)
+            if(model_schema.indexes instanceof Array){
                 async.eachSeries(model_schema.indexes, function(idx,next){
                     this._execute_definition_query(this._create_index_query(table_name,idx), [], consistency, function(err, result){
                         if (err) next(build_error('model.tablecreation.dbindex', err));
@@ -179,8 +178,10 @@ BaseModel._create_table = function(callback){
                             next(null,result);
                     });
                 }.bind(this),callback);
+            }
             else
                 callback();
+           
         }.bind(this);
 
        
@@ -203,7 +204,6 @@ BaseModel._create_table = function(callback){
             else callback();               
         }
         else{  // if not existing, it's created anew
-            //console.log('creating table '+table_name );
             var  create_query = this._create_table_query(table_name,model_schema);
             this._execute_definition_query(create_query, [], consistency, after_dbcreate);
         }
@@ -239,7 +239,6 @@ BaseModel._create_table_query = function(table_name,schema){
         partition_key,
         clustering_key
     );
-    //console.log(query);
     return query;
 };
 
@@ -341,8 +340,11 @@ BaseModel._execute_table_query = function(query, params, consistency, callback){
  * @return {string}            String to be used in query
  * @protected
  * @throws Error if invalid field value given its type
+ * 
  */
 BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
+    /* jshint sub: true */
+
     var fieldtype = schemer.get_field_type(this._properties.schema, fieldname);
 
     if(fieldvalue === null){
@@ -483,7 +485,6 @@ BaseModel._create_find_query = function(query_ob, options){
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
-    //console.log(query);
     return query;
 };
 
@@ -543,13 +544,17 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
-BaseModel.execute_query = function(query, params, consistency, callback){
-    
+BaseModel.execute_query = function(query, params, consistency, callback){    
     this._ensure_connected(function(err){
         if(err) return callback(err);
         consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
-        //console.log(query, params, {'consistency': consistency} );
-        this._properties.cql.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
+        this._properties.cql.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, function(err, result){
+            if(err && err.code == 8704){
+                this._execute_definition_query(query, params, consistency, callback);
+            }else{
+                callback(err, result);
+            }
+        }.bind(this));
     }.bind(this));    
 };
 
@@ -592,7 +597,6 @@ BaseModel.find = function(query_ob, options, callback){
     catch(e){
         return callback(e);
     }
-    //console.log(query);
     this._execute_table_query(query, null, options.consistency, function(err,results){
         if(err) return callback(build_error('model.find.dberror',err));
         if(!options.raw){
@@ -666,7 +670,7 @@ BaseModel.prototype._get_default_value = function(fieldname){
     }
     else
         return undefined; 
-}
+};
 
 
 /* Instance Public --------------------------------------------- */
@@ -726,6 +730,7 @@ BaseModel.prototype.save = function(options, callback){
         }
 
         else {
+            /* jshint sub: true */
             if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
                 if(!fieldvalue['$db_function'])
                     return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
