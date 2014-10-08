@@ -1,12 +1,13 @@
 //libreria di cassandra
 
-var cql = require("node-cassandra-cql");
-var async = require('async');
-var querystring = require("querystring");
-var util = require("util");
-var BaseModel = require('./base_model');
-var schemer = require('./apollo_schemer');
-var lodash = require("lodash");
+var cql = require("cassandra-driver"),
+    SingleNodePolicy = require( __dirname + '/./single_node_policy'),
+    async = require('async'),
+    querystring = require("querystring"),
+    util = require("util"),
+    BaseModel = require('./base_model'),
+    schemer = require('./apollo_schemer'),
+    lodash = require("lodash");
 
 var DEFAULT_REPLICATION_FACTOR = 1;
 
@@ -14,7 +15,7 @@ var noop = function(){};
 
 /**
  * Utilità per cassandra
- * @param {Apollo~Configuration} configuration configurazione di Apollo
+ * @param {Apollo~Connection} connection configurazione di Apollo
  * @param {Apollo~CassandraOptions} options - Cassandra options
  * @class
  */
@@ -27,6 +28,9 @@ var Apollo = function(connection, options){
     this._models = {};
     this._keyspace = connection.keyspace;
     this._connection = connection;
+    //Compatibility with old parameters name
+    if(this._connection.hosts && !this._connection.contactPoints)
+        this._connection.contactPoints = this._connection.hosts;
     this._client = null;
 };
 
@@ -65,15 +69,18 @@ Apollo.prototype = {
         return Model;
     },
 
+    /**
+     * Returns a client to be used only for keyspace assertion
+     * @return {Client} Node driver client
+     */
     _get_system_client : function(){
-        var copy_fields = ['hosts'],
+        var copy_fields = ['contactPoints'],
             temp_connection = {},
             connection = this._connection;
 
         for(var fk in copy_fields){
             temp_connection[copy_fields[fk]] = connection[copy_fields[fk]];
         }
-
         return new cql.Client(temp_connection);
     },
 
@@ -89,7 +96,6 @@ Apollo.prototype = {
             replication_text = '',
             options = this._options;
 
-        var replication_text = '';
         switch(options.placement.class){
 
             case 'SimpleStrategy':
@@ -113,36 +119,21 @@ Apollo.prototype = {
         });
     },
 
-    // _drop_keyspace : function(callback){
-
-    //     var client = this._get_system_client(),
-    //         keyspace_name = this._connection.keyspace,
-    //         query = util.format(
-    //             "DROP KEYSPACE IF EXISTS %s;",
-    //             keyspace_name
-    //         );
-        
-    //     client.execute(query, function(err,result){
-    //         if(err){
-    //             return callback(err);
-    //         }
-           
-    //         this._set_client(null);
-    //         client.shutdown(function(e){
-    //             if(e){
-    //                 return callback(e);
-    //             }
-    //             callback(err,result);
-    //         });            
-    //     }.bind(this));
-    // },
-
+    /**
+     * Set internal clients
+     * @param {object} client Node driver client
+     */
     _set_client : function(client){
-        var options = lodash.clone(this._connection);
-            options.host = options.hosts[0];
+        var define_connection_options = lodash.clone(this._connection);
+        
+        define_connection_options.policies = {
+            loadBalancing: new SingleNodePolicy()
+        };
+
+        //define_connection_options.hosts = define_connection_options.contactPoints;
             
         this._client = client;
-        this._define_connection = new cql.Connection(options);
+        this._define_connection = new cql.Client(define_connection_options);
 
         /*this._client.on('log',function(level, message){
             console.log(message);
@@ -163,7 +154,7 @@ Apollo.prototype = {
         var on_keyspace = function(err){
             if(err){ return callback(err);}
             this._set_client(new cql.Client(this._connection));
-            callback(null, this);
+            callback(err, this);            
         };
 
         if(this._keyspace){
@@ -231,7 +222,7 @@ Apollo.prototype = {
             if(!this._define_connection){
                 return callback(err);
             }
-            this._define_connection.close(function(derr){
+            this._define_connection.shutdown(function(derr){
                 callback(err || derr);
             });
         }.bind(this));
@@ -274,7 +265,7 @@ module.exports = Apollo;
 
  /**
   * Options for connection of Cassandra client
-  * @typedef {Object}  Apollo~connection
+  * @typedef {Object}  Apollo~Connection
   * @property {array}  hosts - Array of string in host:port format. Port is optional (default 9042).
   * @property {string} keyspace - Name of keyspace to use.
   * @property {string} [username=null] - User for authentication.

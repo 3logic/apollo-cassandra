@@ -8,7 +8,7 @@ var connection;
 switch(process.env.TRAVIS){
     case 'true':
         connection = {
-            "hosts": [
+            "contactPoints": [
                 "127.0.0.1"
             ],
             "keyspace": "tests"
@@ -16,7 +16,7 @@ switch(process.env.TRAVIS){
         break;
     default:
         connection = {
-            "hosts": [
+            "contactPoints": [
                 "sh4.3logic.it",
                 "sh5.3logic.it"
             ],
@@ -27,7 +27,7 @@ switch(process.env.TRAVIS){
 
 describe('Apollo > ', function(){
 
-    this.timeout(5000);
+    this.timeout(10000);
     
     describe('Global library', function(){
 
@@ -43,6 +43,7 @@ describe('Apollo > ', function(){
 
             it('connect to cassandra', function(done){
                 apollo.connect(done);
+                apollo.close();
             });
         });
     });
@@ -53,17 +54,24 @@ describe('Apollo > ', function(){
         var ap;
 
         beforeEach(function(done) {
+            var on_old_clinent_closed = function(){
+                ap = new Apollo(connection);
+                // Setup
+                ap.connect(function(err){      
+                    if(err) return done(err);      
+                    var BaseModel = ap.add_model("test1", model_test1);
+                    BaseModel.drop_table(done);
+                });
+            };
+
+
             if(ap)
-                ap.close();
+                ap.close(on_old_clinent_closed);
+            else{
+                on_old_clinent_closed();
+            }
 
-            ap = new Apollo(connection);
-
-            // Setup
-            ap.connect(function(err){      
-                if(err) return done(err);      
-                var BaseModel = ap.add_model("test1", model_test1);
-                BaseModel.drop_table(done);
-            });
+            
         });
 
         var model_test1 = { 
@@ -129,7 +137,7 @@ describe('Apollo > ', function(){
         describe('Schema conflicts on init > ',function(){
             
             beforeEach(function(done) {
-                var BaseModel = ap.add_model("test1", model_test1);
+                var BaseModel = ap.add_model("test1", model_test1, {mismatch_behaviour: 'drop'});
                 BaseModel.drop_table(function(err){
                     if(err) return done(err);
                     BaseModel.init(done);
@@ -192,13 +200,16 @@ describe('Apollo > ', function(){
             var TestModel;
 
             beforeEach(function(done) {
-                TestModel = ap.add_model("test1", model_test1);
+                TestModel = ap.add_model("test1", model_test1, {mismatch_behaviour:"drop"});
                 TestModel.init(done);
             });
 
             it('successful basic save', function(done){
                 var ins = new TestModel({'v1': 500});
                 ins.save(function(err,result){
+                    if(err){
+                        console.log(err);
+                    }
                     assert.notOk(err);
                     done();
                 });
@@ -346,7 +357,7 @@ describe('Apollo > ', function(){
 
             it('successful save with default fields (js function on isntance fields)', function(done){
                 var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2} }, v3:"uuid"}, 
+                    fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2;} }, v3:"uuid"}, 
                     key:["v1"],
                     indexes : ["v3"]
                 };

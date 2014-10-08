@@ -1,13 +1,24 @@
 var util = require('util'),
     build_error = require('./apollo_error.js'),
-    cql = require('node-cassandra-cql'),
+    cql = require('cassandra-driver'),
     schemer = require('./apollo_schemer'),
     async = require('async'),
     lodash = require('lodash');
 
+/*
+Valid consistencies:
+any 
+one        
+two        
+three      
+quorum     
+all        
+localQuorum
+eachQuorum 
+localOne */  
 var CONSISTENCY_FIND   = 'quorum',
     CONSISTENCY_SAVE   = 'quorum',
-    CONSISTENCY_DEFINE = 'quorum',
+    CONSISTENCY_DEFINE = 'all',
     CONSISTENCY_DELETE = 'quorum',
     CONSISTENCY_DEFAULT = 'quorum';
 
@@ -115,11 +126,24 @@ BaseModel._execute_definition_query = function(query, params, consistency, callb
         }
         var properties = this._properties,
             conn = properties.define_connection;
-        conn.open(function(){
-            consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
-            conn.execute(query, params, consistency, callback);
-        });
+        conn.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
     }.bind(this));    
+};
+
+/**
+ * Execute queries in batch on A connection
+ * @param  {object[]}   queries     query, params object
+ * @param  {BaseModel~cql_consistencies}   consistency Consistency type
+ * @param  {BaseModel~GenericCallback}      callback    callback of the execution
+ * @protected
+ * @static
+ */
+BaseModel._execute_batch = function(queries, consistency, callback){
+    this._ensure_connected(function(err){
+        if(err) return callback(err);
+        consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
+        this._properties.cql.batch(queries, {'consistency': consistency} , callback);
+    }.bind(this));
 };
 
 
@@ -157,8 +181,9 @@ BaseModel._create_table = function(callback){
                 }.bind(this),callback);
             else
                 callback();
-        }.bind(this);      
+        }.bind(this);
 
+       
         if (db_schema){// check if schemas match
             var normalized_model_schema = schemer.normalize_model_schema(model_schema),     
                 normalized_db_schema = schemer.normalize_model_schema(db_schema); 
@@ -180,7 +205,6 @@ BaseModel._create_table = function(callback){
         else{  // if not existing, it's created anew
             //console.log('creating table '+table_name );
             var  create_query = this._create_table_query(table_name,model_schema);
-            //console.log(create_query);
             this._execute_definition_query(create_query, [], consistency, after_dbcreate);
         }
     }.bind(this));
@@ -459,7 +483,6 @@ BaseModel._create_find_query = function(query_ob, options){
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
-
     //console.log(query);
     return query;
 };
@@ -525,7 +548,8 @@ BaseModel.execute_query = function(query, params, consistency, callback){
     this._ensure_connected(function(err){
         if(err) return callback(err);
         consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
-        this._properties.cql.execute(query, params, consistency, callback);
+        //console.log(query, params, {'consistency': consistency} );
+        this._properties.cql.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
     }.bind(this));    
 };
 
