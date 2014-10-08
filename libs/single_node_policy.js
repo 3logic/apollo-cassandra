@@ -1,6 +1,13 @@
 var util = require('util'),
     LoadBalancingPolicy = require('cassandra-driver').policies.loadBalancing.LoadBalancingPolicy;
 
+/**
+ * SingleNodePolicy constructor
+ * @param {int} default_connection_index Order of host as defined in Apollo constructor
+ * @class SingleNodePolicy
+ * @extends LoadBalancingPolicy
+ * @classDesc With this policy only one host will be used for communication
+ */
 var SingleNodePolicy = function( default_connection_index ){
     LoadBalancingPolicy.apply(this,Array.prototype.slice.call(arguments));
     this._default_connection_index = default_connection_index || 0;

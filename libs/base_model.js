@@ -340,8 +340,11 @@ BaseModel._execute_table_query = function(query, params, consistency, callback){
  * @return {string}            String to be used in query
  * @protected
  * @throws Error if invalid field value given its type
+ * 
  */
 BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
+    /* jshint sub: true */
+
     var fieldtype = schemer.get_field_type(this._properties.schema, fieldname);
 
     if(fieldvalue === null){
@@ -667,7 +670,7 @@ BaseModel.prototype._get_default_value = function(fieldname){
     }
     else
         return undefined; 
-}
+};
 
 
 /* Instance Public --------------------------------------------- */
@@ -727,6 +730,7 @@ BaseModel.prototype.save = function(options, callback){
         }
 
         else {
+            /* jshint sub: true */
             if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
                 if(!fieldvalue['$db_function'])
                     return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
