@@ -1,9 +1,9 @@
 var util = require('util'),
     LoadBalancingPolicy = require('cassandra-driver').policies.loadBalancing.LoadBalancingPolicy;
 
-var SingleNodePolicy = function(){
+var SingleNodePolicy = function( default_connection_index ){
     LoadBalancingPolicy.apply(this,Array.prototype.slice.call(arguments));
-    this.name = 'single_node_policy';
+    this._default_connection_index = default_connection_index || 0;
 };
 
 util.inherits(SingleNodePolicy, LoadBalancingPolicy);
@@ -17,11 +17,12 @@ SingleNodePolicy.prototype.newQueryPlan = function (keyspace, queryOptions, call
     if (!this.hosts) {
         callback(new Error('Load balancing policy not initialized'));
     }
-    var self = this,
-        hosts = this.hosts.slice(0);
+    var conn_index = this._default_connection_index,
+        hosts = this.hosts.slice(0),
+        counter = 0;
     var next_iterator = function(){
-            return { value: hosts[0], done: false};
-        };
+        return ++counter > 1 ? {done: true} : { value: hosts[conn_index], done: false};
+    };
     
     callback( null, { 'next': next_iterator } );
 };
