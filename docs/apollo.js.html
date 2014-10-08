@@ -39,6 +39,10 @@
 							<a href="Model.html">Model</a>
 						</li>
 						
+						<li>
+							<a href="SingleNodePolicy.html">SingleNodePolicy</a>
+						</li>
+						
 
 					</ul>
 				</li>
@@ -85,30 +89,37 @@
 		<pre
 			class="sunlight-highlight-javascript linenums">//libreria di cassandra
 
-var cql = require("node-cassandra-cql");
-var async = require('async');
-var querystring = require("querystring");
-var util = require("util");
-var BaseModel = require('./base_model');
-var schemer = require('./apollo_schemer');
-var lodash = require("lodash");
+var cql = require("cassandra-driver"),
+    SingleNodePolicy = require( __dirname + '/./single_node_policy'),
+    async = require('async'),
+    querystring = require("querystring"),
+    util = require("util"),
+    BaseModel = require('./base_model'),
+    schemer = require('./apollo_schemer'),
+    lodash = require("lodash");
+
+var DEFAULT_REPLICATION_FACTOR = 1;
+
+var noop = function(){};
 
 /**
  * Utilità per cassandra
- * @param {Apollo~Configuration} configuration configurazione di Apollo
+ * @param {Apollo~Connection} connection configurazione di Apollo
  * @param {Apollo~CassandraOptions} options - Cassandra options
  * @class
  */
 var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
-
-    this._options = options || { 
-        replication : {'class' : 'SimpleStrategy', 'replication_factor' : 1 }
-    };
+    options = options || {};
+    this._options = lodash.defaults(options, { 
+        replication_strategy : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
+    });
     this._models = {};
     this._keyspace = connection.keyspace;
     this._connection = connection;
-    
+    //Compatibility with old parameters name
+    if(this._connection.hosts && !this._connection.contactPoints)
+        this._connection.contactPoints = this._connection.hosts;
     this._client = null;
 };
 
@@ -142,9 +153,42 @@ Apollo.prototype = {
             }
         }
 
-        Model.set_properties(properties);
+        Model._set_properties(properties);
 
         return Model;
+    },
+
+    /**
+     * Returns a client to be used only for keyspace assertion
+     * @return {Client} Node driver client
+     */
+    _get_system_client : function(){
+        var copy_fields = ['contactPoints'],
+            temp_connection = {},
+            connection = this._connection;
+
+        for(var fk in copy_fields){
+            temp_connection[copy_fields[fk]] = connection[copy_fields[fk]];
+        }
+        return new cql.Client(temp_connection);
+    },
+
+    /**
+     * Generate replication strategy text for keyspace creation query
+     * @param  {object|string} replication_option An object or a string representing replication strategy
+     * @return {string}                    Replication strategy text
+     * @private
+     */
+    _generate_replication_text : function(replication_option){
+        if( typeof replication_option == 'string'){
+            return replication_option;
+        }else{
+            var properties = [];
+            for(var k in replication_option){
+                properties.push(util.format("'%s': '%s'", k, replication_option[k] ));
+            }
+            return util.format('{%s}', properties.join(','));
+        }
     },
 
     /**
@@ -153,28 +197,13 @@ Apollo.prototype = {
       * @private
       */
     _assert_keyspace : function(callback){
-        var copy_fields = ['hosts'],
-            temp_connection = {},
-            connection = this._connection,
+        
+        var client = this._get_system_client();
+        var keyspace_name = this._connection.keyspace,
+            replication_text = '',
             options = this._options;
 
-        for(var fk in copy_fields){
-            temp_connection[copy_fields[fk]] = connection[copy_fields[fk]];
-        }
-
-        var keyspace_name = connection.keyspace,
-            client = new cql.Client(temp_connection);
-
-        var replication_text = '';
-        switch(options.replication.class){
-            case 'SimpleStrategy':
-                replication_text = util.format("{ 'class' : 'SimpleStrategy', 'replication_factor' : %d}", options.replication.replication_factor );
-                break;
-            default:
-                replication_text = "{ 'class' : 'SimpleStrategy', 'replication_factor' : 1}";
-                break;
-
-        }
+        replication_text = this._generate_replication_text(options.replication_strategy);
 
         var query = util.format(
             "CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = %s;",
@@ -182,9 +211,36 @@ Apollo.prototype = {
             replication_text
         );
         client.execute(query, function(err,result){
-            client.shutdown();
-            callback(err,result);
+            client.shutdown(function(){
+                callback(err,result);
+            });            
         });
+    },
+
+    /**
+     * Set internal clients
+     * @param {object} client Node driver client
+     */
+    _set_client : function(client){
+        var define_connection_options = lodash.clone(this._connection);
+        
+        define_connection_options.policies = {
+            loadBalancing: new SingleNodePolicy()
+        };
+
+        //define_connection_options.hosts = define_connection_options.contactPoints;
+            
+        this._client = client;
+        this._define_connection = new cql.Client(define_connection_options);
+
+        /*this._client.on('log',function(level, message){
+            console.log(message);
+        });*/
+        //Reset connections on all models
+        for(var i in this._models){
+            this._models[i]._properties.cql = this._client;
+            this._models[i]._properties.define_connection = this._define_connection;
+        }
     },
 
 
@@ -195,13 +251,8 @@ Apollo.prototype = {
     connect : function(callback){
         var on_keyspace = function(err){
             if(err){ return callback(err);}
-            this._client = new cql.Client(this._connection);
-
-            var options = lodash.clone(this._connection);
-            options.host = options.hosts[0];
-            this._define_connection = new cql.Connection(options);
-            
-            callback(null, this);
+            this._set_client(new cql.Client(this._connection));
+            callback(err, this);            
         };
 
         if(this._keyspace){
@@ -228,16 +279,18 @@ Apollo.prototype = {
         if(options.mismatch_behaviour !== 'fail' && options.mismatch_behaviour !== 'drop')
             throw 'Valid option values for "mismatch_behaviour": "fail" , "drop". Got: "'+options.mismatch_behaviour+'"';
 
-        schemer.normalize_model_schema(model_schema);
+        //model_schema = schemer.normalize_model_schema(model_schema);
         schemer.validate_model_schema(model_schema);
-
+        
         var base_properties = {
             name : model_name,
             schema : model_schema,
-            cql : this._client,
-            define_connection : this._define_connection,
+            keyspace : this._keyspace,
             mismatch_behaviour : options.mismatch_behaviour,
-            get_constructor : this.get_model.bind(this,model_name)
+            define_connection : this._define_connection,
+            cql : this._client,
+            get_constructor : this.get_model.bind(this,model_name),
+            connect: this.connect.bind(this)
         };
 
         return (this._models[model_name] = this._generate_model(base_properties));
@@ -252,56 +305,25 @@ Apollo.prototype = {
         return this._models[model_name] || null;
     },
 
-    /**
-     * Stringa di update da utilizzare in PIG nel formato:
-     * ‘cql://myschema/example?output_query=update example set value1 @ #,value2 @ #’ 
-     *
-     * @param  {string} model_name Nome del modello precedentemente registrato
-     * @param  {bool} encode     Indica che se la strigna deve essere in URL encode o meno
-     * @return {string}            Strigna per PIg
-     * @ignore
-     */
-    pig_cql_update_connection : function(model_name, encode, callback){
-        if ( !(model_name in this._models) || !this._models[model_name])
-            return callback("Modello non conosciuto");
-
-        //prima parte delal stringa
-        var cqlstring = "cql://" + this._keyspace + "/" + model_name + "?";
-        //inizio update
-        var cqlquerystring = {output_query: "update " + this._keyspace + "." + model_name + " set "};
-
-        //aggiunta delle colonne
-        var values = [];
-        for (var f in this._models[model_name].fields)
-            values.push(f + " @ #");
-        cqlquerystring.output_query += values.join(" , ");
-        //inserimento della seconda parte in versione encode o meno a seconda della richeista
-        if (encode)
-            cqlstring +=  querystring.stringify(cqlquerystring);
-        else
-            cqlstring += "output_query=" + cqlquerystring.output_query;
-        return callback(null,cqlstring);
-
-    },
-
-    /**
-     * Connessione per lettura da cassandra in pig
-     * @param  {string} keyspace Keyspace della tabella
-     * @param  {string} table    nome della tabella
-     * @return {string}          stringa di connessione
-     * @ignore
-     */
-    pig_cql_connection : function(keyspace,table){
-        var cqlstring = "cql://" + keyspace + "/" + table + "?";       
-        return cqlstring;
-    },
-
+    
     /**
      * Chiusura della connessione
      * @param  {Function} callback callback
      */
-    close : function(callback){        
-        this._client.shutdown(callback);
+    close : function(callback){ 
+        callback = callback || noop;
+
+        if(!this._client){
+            return callback();
+        }
+        this._client.shutdown(function(err){
+            if(!this._define_connection){
+                return callback(err);
+            }
+            this._define_connection.shutdown(function(derr){
+                callback(err || derr);
+            });
+        }.bind(this));
     }
 };
 
@@ -320,16 +342,10 @@ module.exports = Apollo;
  */
 
 /**
- * Opzioni per il client cassandra
+ * Options for cassandra client
  * @typedef {Object} Apollo~CassandraOptions
- * @property {object} replication - replication configuration object
+ * @property {(object|string)} replication_strategy - replication strategy configuration object or string
  */
-
- /**
-  * Opzioni per il client cassandra
-  * @typedef {Object} Apollo~Configuration
-  * @property {Apollo~connection} connection - Configurazione per la connessione client cassandra
-  */
 
 /**
  * Options for the model creation method
@@ -340,12 +356,16 @@ module.exports = Apollo;
  */
 
  /**
-  * Opzioni per la connessione client cassandra
-  * @typedef {Object} Apollo~connection
-  * @property {array} hosts - Array of string in host:port format. Port is optional (default 9042).
+  * Options for connection of Cassandra client
+  * @typedef {Object}  Apollo~Connection
+  * @property {array}  contactPoints - Array of string in host:port format. Port is optional (default 9042).
   * @property {string} keyspace - Name of keyspace to use.
   * @property {string} [username=null] - User for authentication.
-  * @property {string} [password] - Password for authentication.
+  * @property {string} [password=null] - Password for authentication.
+  * @property {int}    [staleTime=1000] - Time in milliseconds before trying to reconnect to a node.
+  * @property {int}    [maxExecuteRetries=3] - Maximum amount of times an execute can be retried using another connection, in case the server is unhealthy.
+  * @property {int}    [getAConnectionTimeout=3500] - Maximum time in milliseconds to wait for a connection from the pool.
+  * @property {int}    [poolSize=1] - Number of connections to open for each host
   */
  
 
@@ -371,7 +391,7 @@ module.exports = Apollo;
 					
 		<span class="jsdoc-message">
 		Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a>
-		on Thu Aug 28th 2014 using the <a
+		on Wed Oct 8th 2014 using the <a
 			href="https://github.com/terryweiss/docstrap">DocStrap template</a>.
 		</span>
 				</footer>

@@ -67,7 +67,7 @@ var schemer = {
                 throw("Partition Key as string must match a column name");
         }
         else if(model_schema.key[0] instanceof Array){
-            if(model_schema.key[0].length == 0){
+            if(model_schema.key[0].length === 0){
                  throw("Partition Key array can't be empty");
             }
             for(var j in model_schema.key[0]){
@@ -101,7 +101,7 @@ var schemer = {
         if(typeof fieldob == 'string')
             return fieldob;
         else if(typeof fieldob == 'object'){
-            return fieldob['type'];
+            return fieldob.type;
         }
         else
             return undefined;

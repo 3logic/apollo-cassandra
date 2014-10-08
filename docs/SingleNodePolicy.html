@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Apollo Class: Model</title>
+	<title>Apollo Class: SingleNodePolicy</title>
 
 	<!--[if lt IE 9]>
 	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -82,15 +82,15 @@
 					
 
 
-	<h1 class="page-title">Class: Model</h1>
+	<h1 class="page-title">Class: SingleNodePolicy</h1>
 <section>
 
 <header>
     <h2>
-    Model
+    SingleNodePolicy
     </h2>
     
-        <div class="class-description"><p>Generic model. Use it statically to find documents on Cassandra. Any instance represent a row retrieved or which can be saved on DB</p></div>
+        <div class="class-description"><p>With this policy only one host will be used for communication</p></div>
     
 </header>
 
@@ -101,7 +101,7 @@
     
         
 <dt>
-    <h4 class="name" id="Model"><span class="type-signature"></span>new Model<span class="signature">(instance_values)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="SingleNodePolicy"><span class="type-signature"></span>new SingleNodePolicy<span class="signature">(default_connection_index)</span><span class="type-signature"></span></h4>
     
     
 </dt>
@@ -109,7 +109,7 @@
     
     
     <div class="description">
-        <p>Create a new instance for the model</p>
+        <p>SingleNodePolicy constructor</p>
     </div>
     
 
@@ -143,13 +143,13 @@
 
         <tr>
             
-                <td class="name"><code>instance_values</code></td>
+                <td class="name"><code>default_connection_index</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">object</span>
+<span class="param-type">int</span>
 
 
             
@@ -159,7 +159,7 @@
 
             
 
-            <td class="description last"><p>Key/value object containing values of the row  *</p></td>
+            <td class="description last"><p>Order of host as defined in Apollo constructor</p></td>
         </tr>
 
 	
@@ -195,8 +195,8 @@
 	<dd class="tag-source">
 		<ul class="dummy">
 			<li>
-				<a href="apollo.js.html">apollo.js</a>,
-				 <a href="apollo.js.html#sunlight-1-line-48">line 48</a>
+				<a href="single_node_policy.js.html">single_node_policy.js</a>,
+				 <a href="single_node_policy.js.html#sunlight-1-line-4">line 4</a>
 			</li>
 		</ul>
 	</dd>
@@ -230,7 +230,7 @@
         <h3 class="subsection-title">Extends</h3>
 
         <ul>
-            <li><a href="BaseModel.html">BaseModel</a></li>
+            <li>LoadBalancingPolicy</li>
         </ul>
     
 
@@ -250,16 +250,12 @@
         <dl>
             
 <dt>
-    <h4 class="name" id="delete"><span class="type-signature"></span>delete<span class="signature">(<span class="optional">options</span>, callback)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="newQueryPlan"><span class="type-signature"></span>newQueryPlan<span class="signature">(keyspace, queryOptions, callback)</span><span class="type-signature"></span></h4>
     
     
 </dt>
 <dd>
     
-    
-    <div class="description">
-        <p>Delete this entry on database</p>
-    </div>
     
 
     
@@ -280,11 +276,7 @@
 		<th>Type</th>
 
 		
-		<th>Argument</th>
-		
 
-		
-		<th>Default</th>
 		
 
 		<th class="last">Description</th>
@@ -296,39 +288,41 @@
 
         <tr>
             
-                <td class="name"><code>options</code></td>
+                <td class="name"><code>keyspace</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type"><a href="BaseModel.html#delete_options">BaseModel~delete_options</a></span>
+<span class="param-type">String</span>
 
 
             
             </td>
 
             
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
 
-                
+            
 
-                
-                </td>
+            <td class="description last"><p>Name of the keyspace</p></td>
+        </tr>
+
+	
+
+        <tr>
+            
+                <td class="name"><code>queryOptions</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
             
 
             
-                <td class="default">
-                
-                    {}
-                
-                </td>
-            
 
-            <td class="description last"><p>Option for this delete query</p></td>
+            <td class="description last"><p>options evaluated for this execution</p></td>
         </tr>
 
 	
@@ -341,29 +335,17 @@
             <td class="type">
             
                 
-<span class="param-type"><a href="BaseModel.html#GenericCallback">BaseModel~GenericCallback</a></span>
+<span class="param-type">function</span>
 
 
             
             </td>
 
             
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
 
             
-                <td class="default">
-                
-                </td>
-            
 
-            <td class="description last"><p>Data retrieved</p></td>
+            <td class="description last"></td>
         </tr>
 
 	
@@ -380,15 +362,6 @@
 
 	
 
-	
-	<dt class="inherited-from">Inherited From:</dt>
-	<dd class="inherited-from">
-		<ul class="dummy">
-			<li>
-				<a href="BaseModel.html#delete">BaseModel#delete</a>
-			</li>
-		</ul>
-	</dd>
 	
 
 	
@@ -408,197 +381,8 @@
 	<dd class="tag-source">
 		<ul class="dummy">
 			<li>
-				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-766">line 766</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <h4 class="name" id="save"><span class="type-signature"></span>save<span class="signature">(<span class="optional">options</span>, callback)</span><span class="type-signature"></span></h4>
-    
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>Save this instance of the model</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        <h5>Parameters:</h5>
-        
-
-<table class="params table table-striped">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-
-		<th>Type</th>
-
-		
-		<th>Argument</th>
-		
-
-		
-		<th>Default</th>
-		
-
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-
-	<tbody>
-	
-
-        <tr>
-            
-                <td class="name"><code>options</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">object</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    {}
-                
-                </td>
-            
-
-            <td class="description last"><p>options for the query</p></td>
-        </tr>
-
-	
-
-        <tr>
-            
-                <td class="name"><code>callback</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="BaseModel.html#QueryExecution">BaseModel~QueryExecution</a></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"><p>Result of the save or an error eventually</p></td>
-        </tr>
-
-	
-	</tbody>
-</table>
-
-    
-    
-    
-<dl class="details">
-	
-
-	
-
-	
-
-	
-	<dt class="inherited-from">Inherited From:</dt>
-	<dd class="inherited-from">
-		<ul class="dummy">
-			<li>
-				<a href="BaseModel.html#save">BaseModel#save</a>
-			</li>
-		</ul>
-	</dd>
-	
-
-	
-
-	
-
-	
-
-	
-
-	
-
-
-
-	
-	<dt class="tag-source">Source:</dt>
-	<dd class="tag-source">
-		<ul class="dummy">
-			<li>
-				<a href="base_model.js.html">base_model.js</a>,
-				 <a href="base_model.js.html#sunlight-1-line-698">line 698</a>
+				<a href="single_node_policy.js.html">single_node_policy.js</a>,
+				 <a href="single_node_policy.js.html#sunlight-1-line-23">line 23</a>
 			</li>
 		</ul>
 	</dd>
