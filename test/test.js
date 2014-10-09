@@ -57,7 +57,7 @@ describe('Apollo > ', function(){
             var on_old_clinent_closed = function(){
                 ap = new Apollo(connection);
                 // Setup
-                ap.connect(function(err){      
+                ap.connect(function(err){
                     if(err) return done(err);      
                     var BaseModel = ap.add_model("test1", model_test1);
                     BaseModel.drop_table(done);
@@ -595,6 +595,53 @@ describe('Apollo > ', function(){
 
         });
 
+    });
+
+
+    describe.only('Types tests >', function(){
+
+        var apollo,
+            model_types = { 
+                fields:{v1:"int",v2:"double",v3:"float"}, 
+                key:["v1"]
+            },
+            Types;
+
+        before(function(done) {
+            apollo = new Apollo(connection);
+            apollo.connect(function(err){
+                if(err) return done(err);                
+                Types = apollo.add_model( 'types', model_types );
+                Types.drop_table(function(err){
+                    if(err) return done(err);
+                    Types.init(function(err){
+                        if(err) return done(err);
+                        async.each(
+                            [1,2,3,4,5,6,7,8,9,10], 
+                            function(i, cb){
+                                var t = new Types({v1: i, v2: i * 1.0, v3: i * 1.0});
+                                t.save(cb);
+                            },
+                            done
+                        );
+                    });
+                });
+                
+            });
+        });
+
+        it('select correctly a row', function(done){
+            Types.find({'v1': 1}, function(err, result){
+                assert.instanceOf(result[0], Types);
+                assert.deepEqual(result[0].v1, 1);
+                done(err);
+            });
+        });
+
+        it('save correctly a row with generic types (int, double, float)', function(done){
+            var t = new Types({v1: 12.0});
+            t.save(done);
+        });
     });
 
 });

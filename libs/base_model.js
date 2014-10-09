@@ -690,29 +690,32 @@ BaseModel.drop_table = function(callback){
 
     var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
     this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
-    //cql.execute(query,[],cql_consistencies[CONSISTENCY_SAVE],callback);
 };
 
 /**
  * Save this instance of the model
- * @param  {object}                     [options={}] - options for the query
+ * @param  {BaseModel~save_options}     [options] - options for the query
  * @param  {BaseModel~QueryExecution}   callback - Result of the save or an error eventually
  * @instance
  */
 BaseModel.prototype.save = function(options, callback){
     if(arguments.length == 1){
         callback = options;
-        options = undefined;
+        options = {};
     }
-
+    
     var identifiers = [], values = [],
         properties = this.constructor._properties,
-        schema = properties.schema;
+        schema = properties.schema,
+        defaults = {
+            consistency : CONSISTENCY_SAVE
+        };
+
+    options = lodash.defaults(options, defaults);
 
     for(var f in schema.fields){
 
-        // check field value
-        
+        // check field value        
         var fieldtype = schemer.get_field_type(schema,f),
             fieldvalue = this[f],
             fieldvalidator = TYPE_MAP[fieldtype].validator;
@@ -735,7 +738,7 @@ BaseModel.prototype.save = function(options, callback){
 
         else {
             /* jshint sub: true */
-            if(typeof fieldvalue == 'object' && fieldtype !=='blob'){
+            if(typeof fieldvalue == 'object' && fieldtype !== 'blob'){
                 if(!fieldvalue['$db_function'])
                     return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
             } 
@@ -759,7 +762,7 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    this.constructor._execute_table_query(query, null, cql_consistencies[CONSISTENCY_SAVE],callback);
+    this.constructor._execute_table_query(query, null,options.consistency, callback);
 };
 
 /**
@@ -814,4 +817,10 @@ module.exports = BaseModel;
 * Options for delete operation
 * @typedef {Object} BaseModel~delete_options
 * @property {string} [consistency=CONSISTENCY_DELETE] - Define consistency for this operation
+*/
+
+/**
+* Options for save operation
+* @typedef {Object} BaseModel~save_options
+* @property {string} [consistency=CONSISTENCY_SAVE] - Define consistency for this operation
 */
