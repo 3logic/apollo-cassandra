@@ -230,6 +230,7 @@ Anyway you can generate documentation cloning this project and launching `grunt 
 ## About
 
 Apollo is brought to you by
+
 - [Niccolò Biondi](https://github.com/bionicco)
 - [Elia Cogodi](https://github.com/ecogodi)
 - [Fabrizio Ruggeri](https://github.com/ramiel)
