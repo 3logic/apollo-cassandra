@@ -1,5 +1,5 @@
 {
-  "name": "apollo",
+  "name": "apollo-cassandra",
   "version": "1.0.0",
   "description": "A basic ORM for Cassandra",
   "main": "index.js",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/3logic/apollo.git"
+    "url": "git://github.com/3logic/apollo-cassandra.git"
   },
   "dependencies": {
     "async": "^0.9.0",
@@ -43,9 +43,9 @@
   "author": "3logic",
   "license": "LGPL-3.0",
   "bugs": {
-    "url": "https://github.com/3logic/apollo/issues"
+    "url": "https://github.com/3logic/apollo-cassandra/issues"
   },
-  "homepage": "https://github.com/3logic/apollo",
+  "homepage": "https://github.com/3logic/apollo-cassandra",
   "publishConfig": {
     "registry": "http://registry.npmjs.org/"
   }
