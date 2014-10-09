@@ -1,6 +1,6 @@
 {
   "name": "apollo",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "description": "A basic ORM for Cassandra",
   "main": "index.js",
   "scripts": {
@@ -45,5 +45,8 @@
   "bugs": {
     "url": "https://github.com/3logic/apollo/issues"
   },
-  "homepage": "https://github.com/3logic/apollo"
+  "homepage": "https://github.com/3logic/apollo",
+  "publishConfig": {
+    "registry": "http://registry.npmjs.org/"
+  }
 }

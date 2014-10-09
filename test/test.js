@@ -242,16 +242,13 @@ describe('Apollo > ', function(){
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
                 
-                TestModelDef.init(function(){
+                TestModelDef.init(function(err){
+                    if(err) return done(err);
                     var ins = new TestModelDef({'v1': 500});
                     ins.save(function(err,result){
                         assert.notOk(err);
-                        TestModelDef.find({'v1': 500}, function(err, results){
-                            assert.notOk(err);
-                            assert.lengthOf(results, 1);
-                            assert.propertyVal(results[0],'v2', 42);
-                            done();
-                        });
+                        assert.propertyVal(ins,'v2',42);
+                        done();
                     });
                 });
                 
@@ -270,12 +267,8 @@ describe('Apollo > ', function(){
                     var ins = new TestModelDef({'v1': 500, 'v2':40});
                     ins.save(function(err,result){
                         assert.notOk(err);
-                        TestModelDef.find({'v1': 500}, function(err, results){
-                            assert.notOk(err);
-                            assert.lengthOf(results, 1);
-                            assert.propertyVal(results[0],'v2', 40);
-                            done();
-                        });
+                        assert.propertyVal(ins,'v2', 40);
+                        done();
                     });
                 });
                 
@@ -295,12 +288,8 @@ describe('Apollo > ', function(){
                     var ins = new TestModelDef({'v1': 500, 'v2':null});
                     ins.save(function(err,result){
                         assert.notOk(err);
-                        TestModelDef.find({'v1': 500}, function(err, results){
-                            assert.notOk(err);
-                            assert.lengthOf(results, 1);
-                            assert.isNull(results[0].v2);
-                            done();
-                        });
+                        assert.isNull(ins.v2);
+                        done();
                     });
                 });
                 
@@ -319,12 +308,8 @@ describe('Apollo > ', function(){
                     var ins = new TestModelDef({'v1': 501});
                     ins.save(function(err,result){
                         assert.notOk(err);
-                        TestModelDef.find({'v1': 501}, function(err, results){
-                            assert.notOk(err);
-                            assert.lengthOf(results, 1);
-                            assert.propertyVal(results[0],'v2', 43);
-                            done();
-                        });
+                        assert.propertyVal(ins,'v2', 43);
+                        done();
                     });
                 });
                 
@@ -343,12 +328,8 @@ describe('Apollo > ', function(){
                     var ins = new TestModelDef({'v1': 502});
                     ins.save(function(err,result){
                         assert.notOk(err);
-                        TestModelDef.find({'v1': 502}, function(err, results){
-                            assert.notOk(err);
-                            assert.lengthOf(results, 1);
-                            //assert.propertyVal(results[0],'v2', 43);
-                            done();
-                        });
+                        assert.ok(ins.v3);
+                        done();
                     });
                 });
                 
@@ -598,7 +579,7 @@ describe('Apollo > ', function(){
     });
 
 
-    describe.only('Types tests >', function(){
+    describe('Types tests >', function(){
 
         var apollo,
             model_types = { 
@@ -630,11 +611,18 @@ describe('Apollo > ', function(){
             });
         });
 
-        it('select correctly a row', function(done){
-            Types.find({'v1': 1}, function(err, result){
+        it('select correctly a row automatically casting type', function(done){
+            Types.find({'v1': 1.0}, function(err, result){
                 assert.instanceOf(result[0], Types);
                 assert.deepEqual(result[0].v1, 1);
                 done(err);
+            });
+        });
+        
+        it('select throw an exception for wrong type', function(done){
+            Types.find({'v1': 10.1}, function(err, result){
+                assert.ok(err);
+                done();
             });
         });
 
@@ -642,6 +630,15 @@ describe('Apollo > ', function(){
             var t = new Types({v1: 12.0});
             t.save(done);
         });
+
+        it('save throws an error when casting is not possible (float to int)', function(done){
+            var t = new Types({v1: 12.3});
+            t.save(function(err, result){
+                assert.ok(err);
+                done();
+            });
+        });
+
     });
 
 });

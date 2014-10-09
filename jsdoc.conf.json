@@ -5,6 +5,7 @@
 	"plugins"   : ["plugins/markdown"],
 
 	"templates" : {
+		"analytics"				: {"ua":"UA-152979-11", "domain":"apollo.3logic.it"},
 		"cleverLinks"           : false,
 		"monospaceLinks"        : false,
 		"dateFormat"            : "ddd MMM Do YYYY",

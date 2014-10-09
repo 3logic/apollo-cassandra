@@ -677,11 +677,43 @@ BaseModel.prototype._get_default_value = function(fieldname){
 };
 
 
+/**
+ * Update model instance with values from DB
+ * @param  {BaseModel~GenericCallback} callback in case of error returns it
+ */
+BaseModel.prototype._update_self = function(callback){
+    var properties = this.constructor._properties,
+        schema = properties.schema,
+        partition_keys = typeof schema.key[0] === 'string' ? [schema.key[0]] : schema.key[0],
+        clustering_keys = schema.key.slice(1),
+        keys = partition_keys.concat(clustering_keys),
+        query_obj = {};
+
+
+    for(var k in keys){
+        query_obj[keys[k]] = this[keys[k]];
+    }
+
+    this.constructor.find(query_obj, {'raw':true}, function(err, result){
+        if(err)
+            return callback(err);
+        if(result.length!==1) {
+            callback('Error self-updating model instance: not a single record in DB',result);
+        }
+        var f;
+        for (f in properties.schema.fields){
+            this[f] = result[0][f];
+        }
+        callback();
+    }.bind(this));
+};
+
+
 /* Instance Public --------------------------------------------- */
 
 /**
  * Drop table related to this model
- * @param  {BaseModel~GenericCallback} callback - return eventually an error on dropping
+ * @param  {BaseModel~GenericCallback} callback in case of error returns it
  */
 BaseModel.drop_table = function(callback){
     var properties = this._properties,
@@ -762,7 +794,14 @@ BaseModel.prototype.save = function(options, callback){
         identifiers.join(" , "),
         values.join(" , ")
     );
-    this.constructor._execute_table_query(query, null,options.consistency, callback);
+    this.constructor._execute_table_query(query, null,options.consistency, function(err, result){
+        if(err) return callback(err);
+        this._update_self(function(err){
+            if(err)
+                console.warn(err);
+            callback(null, result);
+        });
+    }.bind(this));
 };
 
 /**
