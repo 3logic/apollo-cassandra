@@ -1,7 +1,7 @@
 Apollo
 ======
 
-[![Build Status](https://travis-ci.org/3logic/apollo.svg?branch=master)](https://travis-ci.org/3logic/apollo)
+[![Build Status](https://travis-ci.org/3logic/apollo-cassandra.svg?branch=master)](https://travis-ci.org/3logic/apollo-cassandra)
 [![Coverage Status](https://coveralls.io/repos/3logic/apollo/badge.png?branch=master)](https://coveralls.io/r/3logic/apollo?branch=master)
 
 
