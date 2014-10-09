@@ -2,6 +2,7 @@ Apollo
 ======
 
 [![Build Status](https://travis-ci.org/3logic/apollo.svg?branch=master)](https://travis-ci.org/3logic/apollo)
+[![Coverage Status](https://coveralls.io/repos/3logic/apollo/badge.png?branch=master)](https://coveralls.io/r/3logic/apollo?branch=master)
 
 
 Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a> object modeling for <a href="http://nodejs.org/" target="_blank">node.js</a>
@@ -223,7 +224,8 @@ Note that all query clauses must be Cassandra compliant. You cannot, for example
 
 ## Api
 
-Complete api definition will be publicly available soon. Meanwhile you can generate documentation cloning this project and launching `grunt doc`
+Complete api definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
+Anyway you can generate documentation cloning this project and launching `grunt doc`
 
 ## About
 
@@ -232,4 +234,6 @@ Apollo is brought to you by
 - [Elia Cogodi](https://github.com/ecogodi)
 - [Fabrizio Ruggeri](https://github.com/ramiel)
 
-and with the support of [3logic](http://www.3logic.it)
+Thanks to _Gianni Cossu_ and [Massimiliano Atzori](https://github.com/amaxis) for helping.
+
+Thanks to [3logic](http://www.3logic.it) too!

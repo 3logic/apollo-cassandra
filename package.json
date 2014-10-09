@@ -45,5 +45,8 @@
   "bugs": {
     "url": "https://github.com/3logic/apollo/issues"
   },
-  "homepage": "https://github.com/3logic/apollo"
+  "homepage": "https://github.com/3logic/apollo",
+  "publishConfig": {
+    "registry": "http://registry.npmjs.org/"
+  }
 }
