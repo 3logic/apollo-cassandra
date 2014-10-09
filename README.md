@@ -156,9 +156,10 @@ When you instantiate a model, every field you defined in schema is automatically
 
 ```javascript
 john.age = 25;
-console.log(john.complete_name); //John Doe
+console.log(john.name); //John
+console.log(john.complete_name); // undefined. 
 ```
-__note__: this is not completely true at this stage of developement :)
+__note__: `john.complete_name` is undefined in the newly created instance but will be populated when the instance is saved because it has a default value in schema definition
 
 John is a well defined person but he is not still persisted on cassandra. To persist it we need to save it. So simple:
 
