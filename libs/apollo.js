@@ -255,7 +255,7 @@ module.exports = Apollo;
 /**
  * Options for cassandra client
  * @typedef {Object} Apollo~CassandraOptions
- * @property {(object|string)} replication_strategy - replication strategy configuration object or string
+ * @property {(object|string)} [replication_strategy={ 'class': 'SimpleStrategy', 'replication': 1 }] - replication strategy configuration object or string
  */
 
 /**
