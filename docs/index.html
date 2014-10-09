@@ -108,7 +108,7 @@
     <section class="readme-section">
         <article><h1>Apollo</h1>
 <p><a href="https://travis-ci.org/3logic/apollo"><img src="https://travis-ci.org/3logic/apollo.svg?branch=master" alt="Build Status"></a></p>
-<p>Apollo is a <a href="http://cassandra.apache.org/">Cassandra</a> object modeling for <a href="http://nodejs.org/">node.js</a></p>
+<p>Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a> object modeling for <a href="http://nodejs.org/" target="_blank">node.js</a></p>
 <h2>Notes</h2>
 <p><em>Apollo is in early develeopment stage. Code and documentation are incomplete!</em></p>
 <h2>Installation</h2>
@@ -129,8 +129,37 @@ apollo.connect(function(err){
     if(err) throw err;
     /* do amazing things! */
 })</code></pre>
-<p>Now that apollo is connected start create your models.
-To create a model just start describe it through a schema</p>
+<h3>Connection</h3>
+<p><code>Apollo</code> constructor takes two arguments: <code>connection</code> and <code>options</code>. Let's see what they are in depth:</p>
+<ul>
+<li><p><code>connection</code> are a set of options for your connection and accept the following parameters:</p>
+<ul>
+<li><code>hosts</code> is an array of string written in the form <code>host:port</code> or simply <code>host</code> assuming that the default port is 9042</li>
+<li><code>keyspace</code> is the keyspace you want to use. If it doesn't exist apollo will create it for you</li>
+<li><code>username</code> and <code>password</code> are used for authentication</li>
+<li>Any other parameter is defined in <a href="#api">api</a></li>
+</ul>
+</li>
+<li><p><code>options</code> are a set of generic options. Accept the following parameters:</p>
+<ul>
+<li><code>replication_strategy</code> can be an object or a string representing <a href="http://www.datastax.com/documentation/cassandra/2.0/cassandra/architecture/architectureDataDistributeReplication_c.html" target="_blank">cassandra replication strategy</a>. Default is <code>{'class' : 'SimpleStrategy', 'replication_factor' : 1 }</code></li>
+</ul>
+</li>
+</ul>
+<p>Here is a complete example: </p>
+<pre><code class="lang-javascript">var apollo = new Apollo(
+    {
+       hosts: ['1.2.3.4', '12.3.6.5', 'cassandra.me.com:1212'],
+       keyspace: 'mykeyspace',
+       username: 'username',
+       password: 'password'
+    },
+    {
+        replication_strategy: {'class' : 'NetworkTopologyStrategy', 'dc1': 2 }
+    }
+);</code></pre>
+<h2>Schema</h2>
+<p>Now that apollo is connected, create a <code>model</code> describing it through a <code>schema</code></p>
 <pre><code class="lang-javascript">var PersonSchema = {
     { 
         fields:{
@@ -141,9 +170,9 @@ To create a model just start describe it through a schema</p>
         key:[&quot;name&quot;] 
     }
 };</code></pre>
-<p>Now create a new Model based on your schema</p>
+<p>Now create a new Model based on your schema. The function <code>add_model</code> uses the table name and schema as parameters.</p>
 <pre><code class="lang-javascript">var Person = apollo.add_model('person',PersonSchema);</code></pre>
-<p>Through your model you can query db or save your instances</p>
+<p>From your model you can query cassandra or save your instances</p>
 <pre><code class="lang-javascript">/*Quesry your db*/
 Person.find({name: 'jhon'}, function(err, people){
     if(err) throw err;
@@ -151,11 +180,82 @@ Person.find({name: 'jhon'}, function(err, people){
 });
 
 /*Save your instances*/
-var alex = new People({name: &quot;Alex&quot;, surname: &quot;Rubiks&quot;, age: 32});
+var alex = new Person({name: &quot;Alex&quot;, surname: &quot;Rubiks&quot;, age: 32});
 alex.save(function(err){
     if(!err)
         console.log('Yuppiie!');
 });</code></pre>
+<h2>Schema in detail</h2>
+<p>A schema can be a complex object. Take a look at this example</p>
+<pre><code class="lang-javascript">PersonSchema = {
+    &quot;fields&quot;: {
+        &quot;id&quot;     : { &quot;type&quot;: &quot;uuid&quot;, &quot;default&quot;: {&quot;$db_function&quot;: &quot;uuid()&quot;} },
+        &quot;name&quot;   : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: &quot;no name provided&quot;},
+        &quot;surname&quot;   : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: &quot;no surname provided&quot;},
+        &quot;complete_name&quot; : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: function(){ return this.name + ' ' + this.surname;}},
+        &quot;age&quot;    :  { &quot;type&quot;: &quot;int&quot; },
+        &quot;created&quot;     : {&quot;type&quot;: &quot;timestamp&quot;, &quot;default&quot; : {&quot;$db_function&quot;: &quot;now()&quot;} }
+    },
+    &quot;key&quot; : [[&quot;id&quot;],&quot;created&quot;],
+    &quot;indexes&quot;: [&quot;name&quot;]
+}</code></pre>
+<p>What does the above code means?
+- <code>fields</code> are the columns of your table. For each column name the value can be the type or an object containing more specific informations. i.e.
+    + <code>&quot;id&quot;     : { &quot;type&quot;: &quot;uuid&quot;, &quot;default&quot;: {&quot;$db_function&quot;: &quot;uuid()&quot;} },</code> in this example id type is <code>uuid</code> and the default value is a cassandra function (so it will be executed from the database). 
+    + <code>&quot;name&quot;   : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: &quot;no name provided&quot;},</code> in this case name is a varchar and, if no value will be provided, it will have a default value of <code>no name provided</code>. The same goes for <code>surname</code>
+    + <code>complete_name</code> the default values is calculated from others field. When apollo processes you model instances, the <code>complete_name</code> will be the result of the function you defined. In the function <code>this</code> is the current model instance.
+    + <code>age</code> no default is provided and we could write it just as <code>&quot;age&quot;: &quot;int&quot;</code>
+    + <code>created</code>, like uuid(), will be evalueted from cassandra using the <code>now()</code> function
+- <code>key</code>: here is where you define the key of your table. As you can imagine, the first value of the array is the <code>partition key</code> and the others are the <code>clustering keys</code>. The <code>partition key</code> can be an array defining a <code>compound key</code>. Read more about keys on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/use_compound_keys_t.html" target="_blank">documentation</a>
+- <code>indexes</code> are the index of your table. It's always an array of field names. You can read more on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/ddl/ddl_primary_index_c.html" target="_blank">documentation</a></p>
+<p>Schema will soon support custom validators</p>
+<h2>Generating your model</h2>
+<p>A model is an object representing your cassandra <code>table</code>. Your application interact with cassandra through your models. An instance of the model represents a <code>row</code> of your table.</p>
+<p>Let's create our first model</p>
+<pre><code class="lang-javascript">var Person = apollo.add_model('person',PersonSchema);</code></pre>
+<p>now instantiate a person</p>
+<pre><code class="lang-javascript">var john = new Person({name: &quot;John&quot;, surname: &quot;Doe&quot;});</code></pre>
+<p>When you instantiate a model, every field you defined in schema is automatically a property of your instances. So, you can write:</p>
+<pre><code class="lang-javascript">john.age = 25;
+console.log(john.complete_name); //John Doe</code></pre>
+<p><strong>note</strong>: this is not completely true at this stage of developement :)</p>
+<p>John is a well defined person but he is not still persisted on cassandra. To persist it we need to save it. So simple:</p>
+<pre><code class="lang-javascript">john.save(function(err){
+    if(err)
+        return 'Houston we have a problem';
+    else
+        return 'all ok, saved :)';
+
+});</code></pre>
+<p>When you save an instance all internal validators will check you provided correct values and finally will try to save the instance on cassandra.</p>
+<p>Ok, we are done with John, let's delete it:</p>
+<pre><code class="lang-javascript">john.delete(function(err){
+    //...
+});</code></pre>
+<p>ok, goodbye John.</p>
+<h2>Querying your data</h2>
+<p>Ok, now you have a bunch of people on db. How to retrieve them?</p>
+<h3>Find</h3>
+<pre><code class="lang-javascript">Person.find({name: 'John'}, function(err, people){
+    if(err) throw err;
+    console.log('Found ', people);
+});</code></pre>
+<p>In the above example it will perform the query <code>SELECT * FROM person WHERE name='john'</code> but <code>find()</code> allows you to perform even more complex queries on cassandra.  You should be aware of how to query cassandra. Every error will be reported to you in the <code>err</code> argument, while in <code>people</code> you'll find instances of <code>Person</code>. If you don't want apollo to cast results in instances of your model you can use the <code>raw</code> option as in the following example</p>
+<pre><code class="lang-javascript">Person.find({name: 'John'}, { raw: true }, function(err, people){
+    //people is an array of plain objects
+});</code></pre>
+<p>Let's see a complex query</p>
+<pre><code class="lang-javascript">var query = {
+    name: 'John', // stays for name='john' 
+    age : { '$gt':10 }, // stays for age&gt;10 You can also use $gte, $lt, $lte
+    surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
+    $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
+    $limit: 10 //limit result set
+
+}</code></pre>
+<p>Note that all query clauses must be Cassandra compliant. You cannot, for example, use $in operator for a key which is not the partition key. Querying in Cassandra is very basic but could be confusing at first. Take a look to this <a href="http://mechanics.flite.com/blog/2013/11/05/breaking-down-the-cql-where-clause/" target="_blank">post</a> and, obvsiouly, to the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/about_cql_c.html" target="_blank">documentation</a></p>
+<h2>Api</h2>
+<p>Complete api definition will be publicly available soon. Meanwhile you can generate documentation cloning this project and launching <code>grunt doc</code></p>
 <h2>About</h2>
 <p>Apollo is brought to you by
 - <a href="https://github.com/bionicco">Niccolò Biondi</a>
@@ -183,7 +283,7 @@ alex.save(function(err){
 					
 		<span class="jsdoc-message">
 		Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a>
-		on Wed Oct 8th 2014 using the <a
+		on Thu Oct 9th 2014 using the <a
 			href="https://github.com/terryweiss/docstrap">DocStrap template</a>.
 		</span>
 				</footer>
