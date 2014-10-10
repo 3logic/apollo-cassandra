@@ -1,4 +1,5 @@
-var check = require('check-types');
+var check = require('check-types'),
+    build_error = require('./apollo_error.js');
 
 var TYPE_MAP = {validators:{}};
 
@@ -64,6 +65,15 @@ TYPE_MAP = {
     "uuid"      : {validator : TYPE_MAP.validators.is_uuid,     dbvalidator : "org.apache.cassandra.db.marshal.UUIDType"},
     "varchar"   : {validator : TYPE_MAP.validators.is_string,   dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},    
     "varint"    : {validator : TYPE_MAP.validators.is_integer,  dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
+};
+
+TYPE_MAP.generic_type_validator = function(validator){
+    return {
+        validator   : validator,
+        message     : function( value, prop_name, fieldtype){
+           return build_error('model.set.invalidvalue',value,prop_name,fieldtype)
+        }
+    }
 };
 
 TYPE_MAP.find_type_by_dbvalidator = function(val){

@@ -17,8 +17,8 @@ switch(process.env.TRAVIS){
     default:
         connection = {
             "contactPoints": [
-                "sh4.3logic.it",
-                "sh5.3logic.it"
+                '192.168.100.64',
+                '192.168.100.65'
             ],
             "keyspace": "tests"
         };
@@ -169,6 +169,94 @@ describe('Apollo > ', function(){
             assert.propertyVal(ins,'surname', 'baz');
             assert.notOk(ins.complete_name);
         });
+
+        describe.only('Validation >', function(){
+
+            it('Field validation', function(){
+                var TestModel = ap.add_model("test1", model_test1);
+                
+                assert.throws(function(){
+
+                    var ins = new TestModel({'v1' : 'a'});
+                },'Invalid Value: "a" for Field: v1 (Type: int)');
+            });
+
+
+            it('Field custom validator', function(){
+                var custom_validation_schema = { 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'validator': function(v){ return v > 10; } } }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 5});
+                },'Invalid Value: "5" for Field: v3 (Type: int)');
+            });
+
+            it('Field custom validator with custom message', function(){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            "validator": {
+                                validator: function(v){ return v > 10; },
+                                message : 'V3 must be greater than 10'
+                            }
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 5});
+                },'V3 must be greater than 10');
+            });
+
+            it('Field custom validator with custom generated message', function(){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            "validator": {
+                                validator: function(v){ return v > 10; },
+                                message : function(value){
+                                    return 'v3 must be greater than 10, ' + value + ' is not';
+                                }
+                            }
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var val = 5;
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : val});
+                },'v3 must be greater than 10, ' + val + ' is not');
+            });
+
+            it('Default validator is called after custom validator', function(){
+                var custom_validation_schema = { 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'validator': function(v){ return v != 10; } } }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 'a'});
+                },'Invalid Value: "a" for Field: v3 (Type: int)');
+            });
+
+        });
+
+
+        
 
          
         describe('Schema conflicts on init > ',function(){

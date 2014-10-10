@@ -53,22 +53,60 @@ var BaseModel = function(instance_values){
         },
         default_getter = function(prop_name){
             return this[prop_name];
-        };
+        },
+        validation_wrapper = function(setter, validation_func, prop_name, fieldtype){
+            return function(value){
+                var validation_result = validation_func(value);
+                if( typeof value !== 'undefined' &&  validation_result !== true )
+                    throw validation_result(value, prop_name, fieldtype);
+                setter(value);
+            };
+        },
+        generic_validator_message_func = function(value, prop_name, fieldtype){return util.format('Invalid Value: "%s" for Field: %s (Type: %s)', value, prop_name, fieldtype); };
     
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
         var property_name = fields_keys[i],
-            field = fields[fields_keys[i]];
+            field = fields[fields_keys[i]],
+            fieldtype = schemer.get_field_type(this.constructor._properties.schema,fields_keys[i]),
+            fieldvalue = instance_values[fields_keys[i]],
+            type_fieldvalidator =TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
 
-        var setter = default_setter.bind(_field_values, property_name),
+        var validators = [type_fieldvalidator];
+        if( typeof field['validator'] != 'undefined' ){
+            if( typeof field['validator'] === 'function'){
+                field['validator'] = {
+                    validator : field['validator'],
+                    message   : generic_validator_message_func
+                };
+            }else{
+                if( typeof field.validator != 'object' || typeof field.validator.validator == 'undefined' ){
+                    throw 'Invalid validator';
+                }
+                if(!field.validator.message){
+                    field.validator.message = generic_validator_message_func
+                }else if( typeof field.validator.message == 'string' ){
+                    field.validator.message = function(message, value, prop_name, fieldtype){return util.format(message, value, prop_name, fieldtype); }.bind(null, field.validator.message);
+                }else if( typeof field.validator.message != 'function' ){
+                    throw 'Invalid validator message';
+                }
+            }
+            validators.push(field['validator']);
+        }
+
+        var validation_func = this.constructor._validate.bind(this.constructor, validators);
+        
+        var setter = validation_wrapper( default_setter.bind(_field_values, property_name ), validation_func, property_name, fieldtype),
             getter = default_getter.bind(_field_values, property_name);
 
         if(field['virtual'] && typeof field['virtual']['set'] === 'function'){
-            setter = field['virtual']['set'].bind(_field_values);
+            setter = validation_wrapper(field['virtual']['set'].bind(_field_values), validation_func, property_name, fieldtype);
+            //field['virtual']['set'].bind(_field_values);
         }
 
         if(field['virtual'] && typeof field['virtual']['get'] === 'function'){
             getter = field['virtual']['get'].bind(_field_values);
         }
+
 
         var descriptor = {
             enumerable: true,
@@ -115,6 +153,16 @@ BaseModel._set_properties = function(properties){
     this._properties.table_name = table_name;
     this._properties.qualified_table_name = qualified_table_name;
 };
+
+
+BaseModel._validate = function(validators, value){
+    for(var v in validators){
+        if(!validators[v].validator(value)){
+            return validators[v].message;
+        }
+    }
+    return true;
+}
 
 BaseModel._ensure_connected = function(callback){
     if(!this._properties.cql){
