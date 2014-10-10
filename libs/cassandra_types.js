@@ -1,5 +1,5 @@
 var check = require('check-types'),
-    build_error = require('./apollo_error.js');
+    util = require('util');
 
 var TYPE_MAP = {validators:{}};
 
@@ -33,7 +33,7 @@ TYPE_MAP.validators.is_uuid = function (obj){
 
     //var pattern_uuid4 = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
     var pattern_uuid1 = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
-    return obj.test(pattern_uuid1);
+    return pattern_uuid1.test(obj);
 };
 
 TYPE_MAP.validators.is_inet = function (obj){
@@ -44,7 +44,7 @@ TYPE_MAP.validators.is_inet = function (obj){
     var patt_ip4 = /^(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$/i,
         patt_ip6_1 = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/i,
         patt_ip6_2 = /^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$/i;
-    return obj.test(patt_ip4) || obj.test(patt_ip6_1) || obj.test(patt_ip6_2) ;
+    return patt_ip4.test(obj) || patt_ip6_1.test(obj) || patt_ip6_2.test(obj) ;
 };
 
 
@@ -67,11 +67,12 @@ TYPE_MAP = {
     "varint"    : {validator : TYPE_MAP.validators.is_integer,  dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
 };
 
+
 TYPE_MAP.generic_type_validator = function(validator){
     return {
         validator   : validator,
         message     : function( value, prop_name, fieldtype){
-           return build_error('model.set.invalidvalue',value,prop_name,fieldtype)
+           return util.format('Invalid Value: "%s" for Field: %s (Type: %s)',value,prop_name,fieldtype);
         }
     }
 };

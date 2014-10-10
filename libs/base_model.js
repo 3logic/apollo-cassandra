@@ -57,8 +57,8 @@ var BaseModel = function(instance_values){
         validation_wrapper = function(setter, validation_func, prop_name, fieldtype){
             return function(value){
                 var validation_result = validation_func(value);
-                if( typeof value !== 'undefined' &&  validation_result !== true )
-                    throw validation_result(value, prop_name, fieldtype);
+                if( validation_result !== true )
+                    throw build_error('model.set.invalidvalue', validation_result(value, prop_name, fieldtype) );
                 setter(value);
             };
         },
@@ -69,7 +69,7 @@ var BaseModel = function(instance_values){
             field = fields[fields_keys[i]],
             fieldtype = schemer.get_field_type(this.constructor._properties.schema,fields_keys[i]),
             fieldvalue = instance_values[fields_keys[i]],
-            type_fieldvalidator =TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
+            type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
 
         var validators = [type_fieldvalidator];
         if( typeof field['validator'] != 'undefined' ){
@@ -156,6 +156,8 @@ BaseModel._set_properties = function(properties){
 
 
 BaseModel._validate = function(validators, value){
+    if(typeof value == 'undefined' || value == null)
+        return true;
     for(var v in validators){
         if(!validators[v].validator(value)){
             return validators[v].message;
@@ -834,12 +836,11 @@ BaseModel.prototype.save = function(options, callback){
 
         else {
             /* jshint sub: true */
+            //TODO Not only blob: also decimal, inet and others can be object? 
             if(typeof fieldvalue == 'object' && fieldtype !== 'blob'){
                 if(!fieldvalue['$db_function'])
                     return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
             } 
-            else if(!fieldvalidator(fieldvalue))
-                return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
         }
             
         identifiers.push(f);

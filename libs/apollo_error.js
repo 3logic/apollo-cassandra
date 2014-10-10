@@ -60,7 +60,7 @@ var AERROR_TYPES = {
 		msg: 'Key Field: %s must be set'
 	},
 	'model.set.invalidvalue': {
-		msg: 'Invalid Value: "%s" for Field: %s (Type: %s)'
+		msg: '%s'
 	}
 };
 
