@@ -19,9 +19,11 @@ var schemer = {
     normalize_model_schema: function(model_schema){
         var output_schema = lodash.clone(model_schema,true);
         var good_fields = {fields : true, key:true, indexes:true};
-        for(var k in output_schema)
+        
+        for(var k in output_schema){
             if(!(k in good_fields))
                 delete(output_schema[k]);
+        }
 
         var index_sort = function(a,b){
             return a > b ? 1 : (a < b ? -1 : 0);
@@ -31,6 +33,7 @@ var schemer = {
             if (typeof (output_schema.fields[k]) == 'string' )
                 output_schema.fields[k] = {'type':output_schema.fields[k]};
             else {
+                delete output_schema.fields[k].virtual;
                 delete output_schema.fields[k].default;
             }
         }
@@ -65,6 +68,8 @@ var schemer = {
         if( typeof(model_schema.key[0]) == "string" ){
             if(!(model_schema.key[0] in model_schema.fields)) 
                 throw("Partition Key as string must match a column name");
+            if( model_schema.fields[model_schema.key[0]].virtual ) 
+                throw("Partition Key must match a db column name, can't be a virtual field name");
         }
         else if(model_schema.key[0] instanceof Array){
             if(model_schema.key[0].length === 0){
@@ -72,7 +77,9 @@ var schemer = {
             }
             for(var j in model_schema.key[0]){
                 if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
-                        throw("Partition Key array must contain only column names");
+                    throw("Partition Key array must contain only column names");
+                if( model_schema.fields[model_schema.key[0][j]].virtual ) 
+                    throw("Partition Key array must contain only db column names, can't contain virtual field names");
             }
         }
         else {
@@ -83,15 +90,20 @@ var schemer = {
             if(i>0){
                 if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
                     throw("Clustering Keys must match column names");
+                if( model_schema.fields[model_schema.key[i]].virtual ) 
+                    throw("Clustering Keys must match db column names, can't be virtual field names");
             }
         }
 
         if(model_schema.indexes){
             if(!(model_schema.indexes instanceof Array))
                 throw("Indexes must be an array of column name strings");
-            for(var l in model_schema.indexes)
+            for(var l in model_schema.indexes){
                 if((typeof(model_schema.indexes[l]) != "string") || !(model_schema.indexes[l] in model_schema.fields))
                     throw("Indexes must be an array of column name strings");
+                if( model_schema.fields[model_schema.indexes[l]].virtual ) 
+                    throw("Indexes must be an array of db column names, can't contain virtual field names");
+            }
         }
     },
 

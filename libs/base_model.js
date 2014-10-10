@@ -45,23 +45,37 @@ var noop = function(){};
  */
 var BaseModel = function(instance_values){
     instance_values = instance_values || {};
-    var _fields = {};
+    var _field_values = {};
     var fields = this.constructor._properties.schema.fields;
 
-    var set_func = function(prop_name, new_value){
-            _fields[prop_name] = new_value;
+    var default_setter = function(prop_name, new_value){
+            this[prop_name] = new_value;
         },
-        get_func = function(prop_name){
-            return _fields[prop_name];
+        default_getter = function(prop_name){
+            return this[prop_name];
         };
     
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
-        var property_name = fields_keys[i];
+        var property_name = fields_keys[i],
+            field = fields[fields_keys[i]];
+
+        var setter = default_setter.bind(_field_values, property_name),
+            getter = default_getter.bind(_field_values, property_name);
+
+        if(field['virtual'] && typeof field['virtual']['set'] === 'function'){
+            setter = field['virtual']['set'].bind(_field_values);
+        }
+
+        if(field['virtual'] && typeof field['virtual']['get'] === 'function'){
+            getter = field['virtual']['get'].bind(_field_values);
+        }
+
         var descriptor = {
             enumerable: true,
-            set : set_func.bind(null, property_name),
-            get: get_func.bind(null, property_name)
+            set : setter,
+            get : getter
         };
+
         Object.defineProperty(this, property_name, descriptor);
         this[property_name] = instance_values[property_name];
     }
@@ -746,6 +760,8 @@ BaseModel.prototype.save = function(options, callback){
     options = lodash.defaults(options, defaults);
 
     for(var f in schema.fields){
+        if(schema.fields[f]['virtual'])
+            continue;
 
         // check field value        
         var fieldtype = schemer.get_field_type(schema,f),
