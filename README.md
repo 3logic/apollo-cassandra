@@ -20,7 +20,7 @@ Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a>
 Include Apollo and start creating your models
 
 ```javascript
-var Apollo = require('apollo');
+var Apollo = require('apollo-cassandra');
 
 var connection = {
     "hosts": [
