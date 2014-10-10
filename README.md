@@ -1,7 +1,7 @@
 Apollo
 ======
 
-[![Build Status](https://travis-ci.org/3logic/apollo.svg?branch=master)](https://travis-ci.org/3logic/apollo)
+[![Build Status](https://travis-ci.org/3logic/apollo-cassandra.svg?branch=master)](https://travis-ci.org/3logic/apollo-cassandra)
 [![Coverage Status](https://coveralls.io/repos/3logic/apollo/badge.png?branch=master)](https://coveralls.io/r/3logic/apollo?branch=master)
 
 
@@ -20,7 +20,7 @@ Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a>
 Include Apollo and start creating your models
 
 ```javascript
-var Apollo = require('apollo');
+var Apollo = require('apollo-cassandra');
 
 var connection = {
     "hosts": [
@@ -275,6 +275,7 @@ Anyway you can generate documentation cloning this project and launching `grunt 
 ## About
 
 Apollo is brought to you by
+
 - [Niccolò Biondi](https://github.com/bionicco)
 - [Elia Cogodi](https://github.com/ecogodi)
 - [Fabrizio Ruggeri](https://github.com/ramiel)
