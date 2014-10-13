@@ -1,3 +1,7 @@
+- next
+	
+	- Default value validated
+
 - 1.0.3
 
 	- Validators renamed into rules in schema

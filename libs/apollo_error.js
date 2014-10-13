@@ -59,6 +59,12 @@ var AERROR_TYPES = {
 	'model.save.unsetkey': {
 		msg: 'Key Field: %s must be set'
 	},
+	'model.save.invalidvalue' : {
+		msg : 'Invalid Value: "%s" for Field: %s (Type: %s)'
+	},
+	'model.save.invaliddefaultvalue' : {
+		msg : 'Invalid Default value: "%s" for Field: %s (Type: %s)'
+	},
 	'model.set.invalidvalue': {
 		msg: '%s'
 	}

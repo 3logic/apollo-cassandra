@@ -63,15 +63,18 @@ var BaseModel = function(instance_values){
             };
         },
         generic_validator_message_func = function(value, prop_name, fieldtype){return util.format('Invalid Value: "%s" for Field: %s (Type: %s)', value, prop_name, fieldtype); };
+    this._validators = {};
+    var validators;
     
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
         var property_name = fields_keys[i],
             field = fields[fields_keys[i]],
             fieldtype = schemer.get_field_type(this.constructor._properties.schema,fields_keys[i]),
-            fieldvalue = instance_values[fields_keys[i]],
-            type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
-
-        var validators = [type_fieldvalidator];
+            fieldvalue = instance_values[fields_keys[i]];        
+        
+        
+        var type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
+        validators = [type_fieldvalidator];
         if( typeof field.rule != 'undefined' ){
             if( typeof field.rule === 'function'){
                 field.rule = {
@@ -92,6 +95,7 @@ var BaseModel = function(instance_values){
             }
             validators.push(field['rule']);
         }
+        this._validators[property_name] = validators;
 
         var validation_func = this.constructor._validate.bind(this.constructor, validators);
         
@@ -154,9 +158,15 @@ BaseModel._set_properties = function(properties){
     this._properties.qualified_table_name = qualified_table_name;
 };
 
-
+/**
+ * Calls a list of validator on a value
+ * @param  {array} validators - Array of validation functions
+ * @param  {*} value      - The value to validate
+ * @return {(boolean|function)}            True or a function which generate validation message
+ * @protected
+ */
 BaseModel._validate = function(validators, value){
-    if(typeof value == 'undefined' || value == null)
+    if( typeof value == 'undefined' || value == null || (typeof value == 'object' && value['$db_function']))
         return true;
     for(var v in validators){
         if(!validators[v].validator(value)){
@@ -722,7 +732,29 @@ BaseModel.delete = function(query_ob, options, callback){
 };
 
 
+/**
+ * Drop table related to this model
+ * @param  {BaseModel~GenericCallback} callback in case of error returns it
+ */
+BaseModel.drop_table = function(callback){
+    var properties = this._properties,
+        table_name = properties.table_name,
+        cql = properties.cql;
+
+    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
+    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
+};
+
+
 /* Instance Private --------------------------------------------- */
+
+/**
+ * Set of validators for fields
+ * @private
+ * @type {Object}
+ */
+//BaseModel.prototype._validators = {};
+
 
 BaseModel.prototype._get_default_value = function(fieldname){
     var properties = this.constructor._properties,
@@ -775,18 +807,18 @@ BaseModel.prototype._update_self = function(callback){
 
 /* Instance Public --------------------------------------------- */
 
-/**
- * Drop table related to this model
- * @param  {BaseModel~GenericCallback} callback in case of error returns it
- */
-BaseModel.drop_table = function(callback){
-    var properties = this._properties,
-        table_name = properties.table_name,
-        cql = properties.cql;
 
-    var query = util.format('DROP TABLE IF EXISTS "%s";', table_name);
-    this._execute_definition_query(query,[],cql_consistencies[CONSISTENCY_DEFINE],callback);
-};
+/**
+ * Validate a property given its name
+ * @param  {string} property_name - Name of the property to validate
+ * @param  {*} [value=this[property_name]] - Value to validate. If not provided the current instance value
+ * @return {boolean}              False if validation fails
+ */
+BaseModel.prototype.validate = function( property_name, value ){
+    value = value || this[property_name];
+    this._validators = this._validators || {};
+    return this.constructor._validate(this._validators[property_name] || [], value);
+}
 
 /**
  * Save this instance of the model
@@ -826,6 +858,9 @@ BaseModel.prototype.save = function(options, callback){
                     return callback(build_error('model.save.unsetkey',f));
                 else
                     continue;
+            }
+            if(this.validate( f, fieldvalue ) !== true){
+                return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
             }
         }
 
