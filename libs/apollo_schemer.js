@@ -61,8 +61,11 @@ var schemer = {
             throw('Schema must contain "key" in the form: [ [partitionkey1, ...], clusteringkey1, ...]');
 
         for( var k in model_schema.fields){
-            if (!(this.get_field_type(model_schema,k) in TYPE_MAP))
+            var fieldtype = this.get_field_type(model_schema,k);
+            if (!( fieldtype in TYPE_MAP))
                 throw("Schema Field type unknown for: " + k+ "("+model_schema.fields[k].type+")");
+            if (!(this.is_field_default_value_valid(model_schema,k) ))
+                throw("Invalid defult definition for: " + k+ "("+model_schema.fields[k].type+")");
         }
 
         if( typeof(model_schema.key[0]) == "string" ){
@@ -117,7 +120,23 @@ var schemer = {
         }
         else
             return undefined;
+    },
+
+    is_field_default_value_valid: function(model_schema, fieldname){
+        var fieldtype = this.get_field_type(model_schema, fieldname);
+
+        if (typeof model_schema.fields[fieldname] == 'object' && model_schema.fields[fieldname].default){
+            /* jshint sub: true */
+            if(typeof model_schema.fields[fieldname].default == 'object' && !(model_schema.fields[fieldname].default['$db_function'])){
+                return false;
+            }
+            else
+                return true;
+        }
+        else
+            return true; 
     }
+
 };
 
 module.exports = schemer;

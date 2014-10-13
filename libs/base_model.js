@@ -833,15 +833,6 @@ BaseModel.prototype.save = function(options, callback){
             if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
                 return callback(build_error('model.save.unsetkey',f));
         }
-
-        else {
-            /* jshint sub: true */
-            //TODO Not only blob: also decimal, inet and others can be object? 
-            if(typeof fieldvalue == 'object' && fieldtype !== 'blob'){
-                if(!fieldvalue['$db_function'])
-                    return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
-            } 
-        }
             
         identifiers.push(f);
 

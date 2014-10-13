@@ -129,6 +129,20 @@ describe('Apollo > ', function(){
             });
         });
 
+         it('add faulty model (wrong default type)', function(){
+            var schema = {
+                fields:{
+                    v1:{
+                        type: "int", 
+                        "default": {'im':'a wrong object'} 
+                    } 
+                }
+            };
+            assert.throws(function(){
+                var TestModel = ap.add_model("test1", schema );
+            });
+        });
+
         it('instance model', function(){
             var TestModel = ap.add_model("test1", model_test1);
             var ins = new TestModel({'v1': 500});
@@ -174,7 +188,6 @@ describe('Apollo > ', function(){
                 var TestModel = ap.add_model("test1", model_test1);
                 
                 assert.throws(function(){
-
                     var ins = new TestModel({'v1' : 'a'});
                 },'Invalid Value: "a" for Field: v1 (Type: int)');
             });
