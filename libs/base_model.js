@@ -45,23 +45,75 @@ var noop = function(){};
  */
 var BaseModel = function(instance_values){
     instance_values = instance_values || {};
-    var _fields = {};
+    var _field_values = {};
     var fields = this.constructor._properties.schema.fields;
 
-    var set_func = function(prop_name, new_value){
-            _fields[prop_name] = new_value;
+    var default_setter = function(prop_name, new_value){
+            this[prop_name] = new_value;
         },
-        get_func = function(prop_name){
-            return _fields[prop_name];
-        };
+        default_getter = function(prop_name){
+            return this[prop_name];
+        },
+        validation_wrapper = function(setter, validation_func, prop_name, fieldtype){
+            return function(value){
+                var validation_result = validation_func(value);
+                if( validation_result !== true )
+                    throw build_error('model.set.invalidvalue', validation_result(value, prop_name, fieldtype) );
+                setter(value);
+            };
+        },
+        generic_validator_message_func = function(value, prop_name, fieldtype){return util.format('Invalid Value: "%s" for Field: %s (Type: %s)', value, prop_name, fieldtype); };
     
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
-        var property_name = fields_keys[i];
+        var property_name = fields_keys[i],
+            field = fields[fields_keys[i]],
+            fieldtype = schemer.get_field_type(this.constructor._properties.schema,fields_keys[i]),
+            fieldvalue = instance_values[fields_keys[i]],
+            type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
+
+        var validators = [type_fieldvalidator];
+        if( typeof field.rule != 'undefined' ){
+            if( typeof field.rule === 'function'){
+                field.rule = {
+                    validator : field.rule,
+                    message   : generic_validator_message_func
+                };
+            }else{
+                if( typeof field.rule != 'object' || typeof field.rule.validator == 'undefined' ){
+                    throw 'Invalid validator';
+                }
+                if(!field.rule.message){
+                    field.rule.message = generic_validator_message_func
+                }else if( typeof field.rule.message == 'string' ){
+                    field.rule.message = function(message, value, prop_name, fieldtype){return util.format(message, value, prop_name, fieldtype); }.bind(null, field.rule.message);
+                }else if( typeof field.rule.message != 'function' ){
+                    throw 'Invalid validator message';
+                }
+            }
+            validators.push(field['rule']);
+        }
+
+        var validation_func = this.constructor._validate.bind(this.constructor, validators);
+        
+        var setter = validation_wrapper( default_setter.bind(_field_values, property_name ), validation_func, property_name, fieldtype),
+            getter = default_getter.bind(_field_values, property_name);
+
+        if(field['virtual'] && typeof field['virtual']['set'] === 'function'){
+            setter = validation_wrapper(field['virtual']['set'].bind(_field_values), validation_func, property_name, fieldtype);
+            //field['virtual']['set'].bind(_field_values);
+        }
+
+        if(field['virtual'] && typeof field['virtual']['get'] === 'function'){
+            getter = field['virtual']['get'].bind(_field_values);
+        }
+
+
         var descriptor = {
             enumerable: true,
-            set : set_func.bind(null, property_name),
-            get: get_func.bind(null, property_name)
+            set : setter,
+            get : getter
         };
+
         Object.defineProperty(this, property_name, descriptor);
         this[property_name] = instance_values[property_name];
     }
@@ -101,6 +153,18 @@ BaseModel._set_properties = function(properties){
     this._properties.table_name = table_name;
     this._properties.qualified_table_name = qualified_table_name;
 };
+
+
+BaseModel._validate = function(validators, value){
+    if(typeof value == 'undefined' || value == null)
+        return true;
+    for(var v in validators){
+        if(!validators[v].validator(value)){
+            return validators[v].message;
+        }
+    }
+    return true;
+}
 
 BaseModel._ensure_connected = function(callback){
     if(!this._properties.cql){
@@ -746,6 +810,8 @@ BaseModel.prototype.save = function(options, callback){
     options = lodash.defaults(options, defaults);
 
     for(var f in schema.fields){
+        if(schema.fields[f]['virtual'])
+            continue;
 
         // check field value        
         var fieldtype = schemer.get_field_type(schema,f),
@@ -766,16 +832,6 @@ BaseModel.prototype.save = function(options, callback){
         if(fieldvalue === null){
             if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
                 return callback(build_error('model.save.unsetkey',f));
-        }
-
-        else {
-            /* jshint sub: true */
-            if(typeof fieldvalue == 'object' && fieldtype !== 'blob'){
-                if(!fieldvalue['$db_function'])
-                    return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
-            } 
-            else if(!fieldvalidator(fieldvalue))
-                return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
         }
             
         identifiers.push(f);

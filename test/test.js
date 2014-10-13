@@ -17,8 +17,8 @@ switch(process.env.TRAVIS){
     default:
         connection = {
             "contactPoints": [
-                "sh4.3logic.it",
-                "sh5.3logic.it"
+                '192.168.100.64',
+                '192.168.100.65'
             ],
             "keyspace": "tests"
         };
@@ -54,7 +54,7 @@ describe('Apollo > ', function(){
         var ap;
 
         beforeEach(function(done) {
-            var on_old_clinent_closed = function(){
+            var on_old_client_closed = function(){
                 ap = new Apollo(connection);
                 // Setup
                 ap.connect(function(err){
@@ -66,12 +66,11 @@ describe('Apollo > ', function(){
 
 
             if(ap)
-                ap.close(on_old_clinent_closed);
+                ap.close(on_old_client_closed);
             else{
-                on_old_clinent_closed();
+                on_old_client_closed();
             }
 
-            
         });
 
         var model_test1 = { 
@@ -98,6 +97,24 @@ describe('Apollo > ', function(){
                 indexes : ["v2"]
             };
 
+        var model_testvirtual1 = { 
+                fields:{
+                    name:"text",
+                    surname:"text",
+                    'complete_name':{'type':'text', virtual:{'get': function(){return this.name+' '+this.surname} } } 
+                }, 
+                key:[["name", "surname"]]
+            };
+
+        var model_testvirtual2 = { 
+                fields:{
+                    name:"text",
+                    surname:"text",
+                    'complete_name':{'type':'text', virtual:{'set': function(v){var parts = v.split(' '); this.name = parts[0]; this.surname = parts[parts.length -1]; } } } 
+                }, 
+                key:[["name", "surname"]]
+            };
+
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
             assert.isFunction(TestModel);
@@ -109,6 +126,20 @@ describe('Apollo > ', function(){
         it('add faulty model (silly type)', function(){
             assert.throws(function(){
                 var TestModel = ap.add_model("test1", faulty_model_test1);
+            });
+        });
+
+         it('add faulty model (wrong default type)', function(){
+            var schema = {
+                fields:{
+                    v1:{
+                        type: "int", 
+                        "default": {'im':'a wrong object'} 
+                    } 
+                }
+            };
+            assert.throws(function(){
+                var TestModel = ap.add_model("test1", schema );
             });
         });
 
@@ -132,6 +163,111 @@ describe('Apollo > ', function(){
             var FindModel = ap2.add_model("test1", model_test1);
             FindModel.find( {'v1' : 1}, done);
         });
+
+        it('Virtual field getter', function(){
+            var TestModel = ap.add_model("testvirtual1", model_testvirtual1);
+            var ins = new TestModel({'name': 'foo', 'surname':'baz', complete_name:'bar'});
+
+            assert.propertyVal(ins,'name','foo');
+            assert.propertyVal(ins,'surname', 'baz');
+            assert.propertyVal(ins,'complete_name', 'foo baz');
+        });
+
+        it('Virtual field setter', function(){
+            var TestModel = ap.add_model("testvirtual2", model_testvirtual2);
+            var ins = new TestModel({'name': 'a', 'surname':'b', 'complete_name':'foo bar baz'});
+
+            assert.propertyVal(ins,'name','foo');
+            assert.propertyVal(ins,'surname', 'baz');
+            assert.notOk(ins.complete_name);
+        });
+
+        describe('Validation >', function(){
+
+            it('Field validation', function(){
+                var TestModel = ap.add_model("test1", model_test1);
+                
+                assert.throws(function(){
+                    var ins = new TestModel({'v1' : 'a'});
+                },'Invalid Value: "a" for Field: v1 (Type: int)');
+            });
+
+
+            it('Field custom validator', function(){
+                var custom_validation_schema = { 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v > 10; } } }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 5});
+                },'Invalid Value: "5" for Field: v3 (Type: int)');
+            });
+
+            it('Field custom validator with custom message', function(){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            "rule": {
+                                validator: function(v){ return v > 10; },
+                                message : 'V3 must be greater than 10'
+                            }
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 5});
+                },'V3 must be greater than 10');
+            });
+
+            it('Field custom validator with custom generated message', function(){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            "rule": {
+                                validator: function(v){ return v > 10; },
+                                message : function(value){
+                                    return 'v3 must be greater than 10, ' + value + ' is not';
+                                }
+                            }
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var val = 5;
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : val});
+                },'v3 must be greater than 10, ' + val + ' is not');
+            });
+
+            it('Default validator is called after custom validator', function(){
+                var custom_validation_schema = { 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v != 10; } } }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                assert.throws(function(){
+                    var ins = new TestModel({'v3' : 'a'});
+                },'Invalid Value: "a" for Field: v3 (Type: int)');
+            });
+
+        });
+
+
+        
 
          
         describe('Schema conflicts on init > ',function(){
@@ -224,11 +360,13 @@ describe('Apollo > ', function(){
                 });
             });
 
-            it('failing basic save (wrong type)', function(done){
+
+            it.skip('failing basic save (wrong type)', function(done){
+                //Questo test non ha senso perchè non è valido impostare valori di tipo sbagliato in costruzione
                 var ins = new TestModel({'v1': 500, 'v2': 'foo'});
                 ins.save(function(err,result){
                     assert.ok(err);
-                    assert.propertyVal(err,'name','apollo.model.save.invalidvalue');
+                    assert.propertyVal(err,'name','apollo.model.set.invalidvalue');
                     done();
                 });
             });
@@ -336,7 +474,7 @@ describe('Apollo > ', function(){
             });
 
 
-            it('successful save with default fields (js function on isntance fields)', function(done){
+            it('successful save with default fields (js function on instance fields)', function(done){
                 var model_test_def = { 
                     fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2;} }, v3:"uuid"}, 
                     key:["v1"],
@@ -375,43 +513,45 @@ describe('Apollo > ', function(){
                 this.timeout(15000);
 
                 TestModel = ap.add_model("test_find", model_find_schema, {'mismatch_behaviour':'drop'});
-                //TestModel.drop_table(done);
+                // TestModel.drop_table(function(){
                 
-                TestModel.init(function(err,result){
+                    TestModel.init(function(err,result){
 
-                    if(err) return done(err);
-                    var ins = new TestModel();
-                    async.series([
-                        function(callback){
-                            ins.v1 = 1;
-                            ins.v2 = 'two';
-                            ins.v3 = 3;
-                            ins.v4 = 'foo';
-                            ins.v5 = true;
-                            ins.v6 = 4;
-                            ins.save(callback);
-                        },
-                        function(callback){
-                            ins.v1 = 11;
-                            ins.v2 = 'twelve';
-                            ins.v3 = 13;
-                            ins.v4 = 'baz';
-                            ins.v5 = true;
-                            ins.v6 = 14;
-                            ins.save(callback);
-                        },
-                        function(callback){
-                            ins.v1 = 21;
-                            ins.v2 = 'twentytwo';
-                            ins.v3 = 23;
-                            ins.v4 = 'bar';
-                            ins.v5 = false;
-                            ins.v6 = 24;
-                            ins.save(callback);
-                        }
+                        if(err) return done(err);
+                        var ins = new TestModel();
+                        async.series([
+                            function(callback){
+                                ins.v1 = 1;
+                                ins.v2 = 'two';
+                                ins.v3 = 3;
+                                ins.v4 = 'foo';
+                                ins.v5 = true;
+                                ins.v6 = 4;
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.v1 = 11;
+                                ins.v2 = 'twelve';
+                                ins.v3 = 13;
+                                ins.v4 = 'baz';
+                                ins.v5 = true;
+                                ins.v6 = 14;
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.v1 = 21;
+                                ins.v2 = 'twentytwo';
+                                ins.v3 = 23;
+                                ins.v4 = 'bar';
+                                ins.v5 = false;
+                                ins.v6 = 24;
+                                ins.save(callback);
+                            }
 
-                    ],done);
-                });
+                        ],done);
+                    });
+
+                // });
                 
             });
 
@@ -543,7 +683,7 @@ describe('Apollo > ', function(){
             var TestModel;
 
             beforeEach(function(done) {
-                TestModel = ap.add_model("test1", model_test1);
+                TestModel = ap.add_model("test_delete", model_test1);
                 TestModel.init(function(){
                     var ins = new TestModel({'v1': 500});
                     ins.save(done);
@@ -631,7 +771,8 @@ describe('Apollo > ', function(){
             t.save(done);
         });
 
-        it('save throws an error when casting is not possible (float to int)', function(done){
+        it.skip('save throws an error when casting is not possible (float to int)', function(done){
+            //Questo test non è necessario perchè non è possibile settare un valore del tipo sbagliato
             var t = new Types({v1: 12.3});
             t.save(function(err, result){
                 assert.ok(err);
