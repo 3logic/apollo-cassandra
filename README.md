@@ -274,6 +274,21 @@ Note that all query clauses must be Cassandra compliant. You cannot, for example
 Complete api definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
 Anyway you can generate documentation cloning this project and launching `grunt doc`
 
+## Test
+
+To test Apollo create a file named `local_conf.json` in `test` directory with your connection configuration as below
+
+```json
+{
+    "contactPoints": [
+       "127.0.0.1",
+       "192.168.100.65",
+       "my.cassandra.com:9845"
+    ],
+    "keyspace": "tests"
+}
+```
+
 ## About
 
 Apollo is brought to you by

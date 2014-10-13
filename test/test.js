@@ -15,13 +15,11 @@ switch(process.env.TRAVIS){
         };
         break;
     default:
-        connection = {
-            "contactPoints": [
-                '192.168.100.64',
-                '192.168.100.65'
-            ],
-            "keyspace": "tests"
-        };
+        try{
+            connection = require('./local_conf.json');
+        }catch(e){
+            throw "Missing local_conf.json in test directory";
+        }
         break;
 }
 
