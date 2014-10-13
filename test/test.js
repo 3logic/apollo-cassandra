@@ -182,7 +182,7 @@ describe('Apollo > ', function(){
 
             it('Field custom validator', function(){
                 var custom_validation_schema = { 
-                    fields:{v1:"int",v2:"int",v3:{'type':"int",'validator': function(v){ return v > 10; } } }, 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v > 10; } } }, 
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -199,7 +199,7 @@ describe('Apollo > ', function(){
                         v2:"int",
                         v3:{
                             'type':"int",
-                            "validator": {
+                            "rule": {
                                 validator: function(v){ return v > 10; },
                                 message : 'V3 must be greater than 10'
                             }
@@ -221,7 +221,7 @@ describe('Apollo > ', function(){
                         v2:"int",
                         v3:{
                             'type':"int",
-                            "validator": {
+                            "rule": {
                                 validator: function(v){ return v > 10; },
                                 message : function(value){
                                     return 'v3 must be greater than 10, ' + value + ' is not';
@@ -241,7 +241,7 @@ describe('Apollo > ', function(){
 
             it('Default validator is called after custom validator', function(){
                 var custom_validation_schema = { 
-                    fields:{v1:"int",v2:"int",v3:{'type':"int",'validator': function(v){ return v != 10; } } }, 
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v != 10; } } }, 
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -461,7 +461,7 @@ describe('Apollo > ', function(){
             });
 
 
-            it('successful save with default fields (js function on isntance fields)', function(done){
+            it('successful save with default fields (js function on instance fields)', function(done){
                 var model_test_def = { 
                     fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2;} }, v3:"uuid"}, 
                     key:["v1"],

@@ -72,25 +72,25 @@ var BaseModel = function(instance_values){
             type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
 
         var validators = [type_fieldvalidator];
-        if( typeof field['validator'] != 'undefined' ){
-            if( typeof field['validator'] === 'function'){
-                field['validator'] = {
-                    validator : field['validator'],
+        if( typeof field.rule != 'undefined' ){
+            if( typeof field.rule === 'function'){
+                field.rule = {
+                    validator : field.rule,
                     message   : generic_validator_message_func
                 };
             }else{
-                if( typeof field.validator != 'object' || typeof field.validator.validator == 'undefined' ){
+                if( typeof field.rule != 'object' || typeof field.rule.validator == 'undefined' ){
                     throw 'Invalid validator';
                 }
-                if(!field.validator.message){
-                    field.validator.message = generic_validator_message_func
-                }else if( typeof field.validator.message == 'string' ){
-                    field.validator.message = function(message, value, prop_name, fieldtype){return util.format(message, value, prop_name, fieldtype); }.bind(null, field.validator.message);
-                }else if( typeof field.validator.message != 'function' ){
+                if(!field.rule.message){
+                    field.rule.message = generic_validator_message_func
+                }else if( typeof field.rule.message == 'string' ){
+                    field.rule.message = function(message, value, prop_name, fieldtype){return util.format(message, value, prop_name, fieldtype); }.bind(null, field.rule.message);
+                }else if( typeof field.rule.message != 'function' ){
                     throw 'Invalid validator message';
                 }
             }
-            validators.push(field['validator']);
+            validators.push(field['rule']);
         }
 
         var validation_func = this.constructor._validate.bind(this.constructor, validators);

@@ -188,6 +188,53 @@ ok, goodbye John.
 
 Ok, now you have a bunch of people on db. How to retrieve them?
 
+## Validators
+
+Every time you set a property for an instance of your model, internal type validator check that the value is valid. If not an error is thrown. But how to add a custom validator? You need to provide your custom validator in the schema definition. For example, if you want to check age to be a number greater than zero:
+
+```javascript
+var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : "int",
+        rule : function(value){ return value > 0; }
+    }
+}
+```
+
+your validator must return a boolean. If someone will try to assign `jhon.age = -15;` an error will be thrown.
+You can also provide a message for validation error in this way
+
+```javascript
+var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : "int",
+        rule : {
+            validator : function(value){ return value > 0; },
+            message   : 'Age must be greater than 0'
+        }
+    }
+}
+```
+
+Than the error will have your message. Message can also be a function; in that case it must return a string:
+
+```javascript
+var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : "int",
+        rule : {
+            validator : function(value){ return value > 0; },
+            message   : function(value){ return 'Age must be greater than 0. You provided '+ value; }
+        }
+    }
+}
+```
+
+The error message will be `Age must be greater than 0. You provided -15`
+
 ### Find
 
 ```javascript
@@ -209,7 +256,8 @@ Let's see a complex query
 
 ```javascript
 var query = {
-    name: 'John', // stays for name='john' 
+    name: 'John', // stays f
+    or name='john' 
     age : { '$gt':10 }, // stays for age>10 You can also use $gte, $lt, $lte
     surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
     $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
@@ -220,52 +268,6 @@ var query = {
 
 Note that all query clauses must be Cassandra compliant. You cannot, for example, use $in operator for a key which is not the partition key. Querying in Cassandra is very basic but could be confusing at first. Take a look to this <a href="http://mechanics.flite.com/blog/2013/11/05/breaking-down-the-cql-where-clause/" target="_blank">post</a> and, obvsiouly, to the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/about_cql_c.html" target="_blank">documentation</a>
 
-## Validators
-
-Every time you set a property for an instance of your model, internal type validator check that the value is valid. If not an error is thrown. But how to add a custom validator? You need to provide your custom validator in the schema definition. For example, if you want to check age to be a number greater than zero:
-
-```javascript
-var PersonSchema = {
-    //... other properties hidden for clarity
-    age: {
-        type : "int",
-        validator : function(value){ return value > 0; }
-    }
-}
-```
-
-your validator must return a boolean. If someone will try to assign `jhon.age = -15;` an error will be thrown.
-You can also provide a message for validation error in this way
-
-```javascript
-var PersonSchema = {
-    //... other properties hidden for clarity
-    age: {
-        type : "int",
-        validator : {
-            validator : function(value){ return value > 0; },
-            message   : 'Age must be greater than 0'
-        }
-    }
-}
-```
-
-Than the error will have your message. Message can also be a function; in that case it must return a string:
-
-```javascript
-var PersonSchema = {
-    //... other properties hidden for clarity
-    age: {
-        type : "int",
-        validator : {
-            validator : function(value){ return value > 0; },
-            message   : function(value){ return 'Age must be greater than 0. You provided '+ value; }
-        }
-    }
-}
-```
-
-The error message will be `Age must be greater than 0. You provided -15`
 
 ## Api
 
