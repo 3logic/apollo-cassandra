@@ -116,7 +116,7 @@
 <p><code>npm install apollo</code></p>
 <h2>Usage</h2>
 <p>Include Apollo and start creating your models</p>
-<pre><code class="lang-javascript">var Apollo = require('apollo');
+<pre><code class="lang-javascript">var Apollo = require('apollo-cassandra');
 
 var connection = {
     &quot;hosts&quot;: [
@@ -209,7 +209,6 @@ alex.save(function(err){
     + <code>created</code>, like uuid(), will be evalueted from cassandra using the <code>now()</code> function
 - <code>key</code>: here is where you define the key of your table. As you can imagine, the first value of the array is the <code>partition key</code> and the others are the <code>clustering keys</code>. The <code>partition key</code> can be an array defining a <code>compound key</code>. Read more about keys on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/use_compound_keys_t.html" target="_blank">documentation</a>
 - <code>indexes</code> are the index of your table. It's always an array of field names. You can read more on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/ddl/ddl_primary_index_c.html" target="_blank">documentation</a></p>
-<p>Schema will soon support custom validators</p>
 <h2>Generating your model</h2>
 <p>A model is an object representing your cassandra <code>table</code>. Your application interact with cassandra through your models. An instance of the model represents a <code>row</code> of your table.</p>
 <p>Let's create our first model</p>
@@ -235,6 +234,62 @@ console.log(john.complete_name); // undefined.</code></pre>
     //...
 });</code></pre>
 <p>ok, goodbye John.</p>
+<h2>Virtual fields</h2>
+<p>Your model could have some fields which are not saved on database. You can define them as <code>virtual</code></p>
+<pre><code class="lang-javascript">PersonSchema = {
+    &quot;fields&quot;: {
+        &quot;id&quot;     : { &quot;type&quot;: &quot;uuid&quot;, &quot;default&quot;: {&quot;$db_function&quot;: &quot;uuid()&quot;} },
+        &quot;name&quot;   : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: &quot;no name provided&quot;},
+        &quot;surname&quot;   : { &quot;type&quot;: &quot;varchar&quot;, &quot;default&quot;: &quot;no surname provided&quot;},
+        &quot;&quot;
+        &quot;complete_name&quot; : { 
+            &quot;type&quot;: &quot;varchar&quot;, 
+            &quot;virtual&quot; : { 
+                get: function(){return this.name + ' ' +this.surname;},
+                set: function(value){
+                    value = value.split(' ');
+                    this.name = value[0]; 
+                    this.surname = value[1];
+                }
+            }
+        },
+    }
+}</code></pre>
+<p>A virtual field is simply defined adding a <code>virtual</code> key in field description. Virtuals can have a <code>get</code> and a <code>set</code> function, both optional (you should define at least one of them!).
+<code>this</code> inside get and set functions is bound to current instance of your model.</p>
+<h2>Validators</h2>
+<p>Every time you set a property for an instance of your model, internal type validator check that the value is valid. If not an error is thrown. But how to add a custom validator? You need to provide your custom validator in the schema definition. For example, if you want to check age to be a number greater than zero:</p>
+<pre><code class="lang-javascript">var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : &quot;int&quot;,
+        rule : function(value){ return value &gt; 0; }
+    }
+}</code></pre>
+<p>your validator must return a boolean. If someone will try to assign <code>jhon.age = -15;</code> an error will be thrown.
+You can also provide a message for validation error in this way</p>
+<pre><code class="lang-javascript">var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : &quot;int&quot;,
+        rule : {
+            validator : function(value){ return value &gt; 0; },
+            message   : 'Age must be greater than 0'
+        }
+    }
+}</code></pre>
+<p>Than the error will have your message. Message can also be a function; in that case it must return a string:</p>
+<pre><code class="lang-javascript">var PersonSchema = {
+    //... other properties hidden for clarity
+    age: {
+        type : &quot;int&quot;,
+        rule : {
+            validator : function(value){ return value &gt; 0; },
+            message   : function(value){ return 'Age must be greater than 0. You provided '+ value; }
+        }
+    }
+}</code></pre>
+<p>The error message will be <code>Age must be greater than 0. You provided -15</code></p>
 <h2>Querying your data</h2>
 <p>Ok, now you have a bunch of people on db. How to retrieve them?</p>
 <h3>Find</h3>
@@ -248,7 +303,8 @@ console.log(john.complete_name); // undefined.</code></pre>
 });</code></pre>
 <p>Let's see a complex query</p>
 <pre><code class="lang-javascript">var query = {
-    name: 'John', // stays for name='john' 
+    name: 'John', // stays f
+    or name='john' 
     age : { '$gt':10 }, // stays for age&gt;10 You can also use $gte, $lt, $lte
     surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
     $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
@@ -259,6 +315,16 @@ console.log(john.complete_name); // undefined.</code></pre>
 <h2>Api</h2>
 <p>Complete api definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
 Anyway you can generate documentation cloning this project and launching <code>grunt doc</code></p>
+<h2>Test</h2>
+<p>To test Apollo create a file named <code>local_conf.json</code> in <code>test</code> directory with your connection configuration as below</p>
+<pre><code class="lang-json">{
+    &quot;contactPoints&quot;: [
+       &quot;127.0.0.1&quot;,
+       &quot;192.168.100.65&quot;,
+       &quot;my.cassandra.com:9845&quot;
+    ],
+    &quot;keyspace&quot;: &quot;tests&quot;
+}</code></pre>
 <h2>About</h2>
 <p>Apollo is brought to you by</p>
 <ul>
@@ -289,7 +355,7 @@ Anyway you can generate documentation cloning this project and launching <code>g
 					
 		<span class="jsdoc-message">
 		Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a>
-		on Fri Oct 10th 2014 using the <a
+		on Tue Oct 14th 2014 using the <a
 			href="https://github.com/terryweiss/docstrap">DocStrap template</a>.
 		</span>
 				</footer>
