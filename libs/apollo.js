@@ -1,9 +1,6 @@
-//libreria di cassandra
-
 var cql = require("cassandra-driver"),
     SingleNodePolicy = require( __dirname + '/./single_node_policy'),
     async = require('async'),
-    querystring = require("querystring"),
     util = require("util"),
     BaseModel = require('./base_model'),
     schemer = require('./apollo_schemer'),
@@ -72,6 +69,7 @@ Apollo.prototype = {
     /**
      * Returns a client to be used only for keyspace assertion
      * @return {Client} Node driver client
+     * @private
      */
     _get_system_client : function(){
         var copy_fields = ['contactPoints'],
@@ -131,6 +129,7 @@ Apollo.prototype = {
     /**
      * Set internal clients
      * @param {object} client Node driver client
+     * @private
      */
     _set_client : function(client){
         var define_connection_options = lodash.clone(this._connection);
@@ -278,6 +277,3 @@ module.exports = Apollo;
   * @property {int}    [getAConnectionTimeout=3500] - Maximum time in milliseconds to wait for a connection from the pool.
   * @property {int}    [poolSize=1] - Number of connections to open for each host
   */
- 
-
- 
