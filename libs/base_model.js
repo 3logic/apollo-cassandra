@@ -859,7 +859,7 @@ BaseModel.prototype.save = function(options, callback){
                 else
                     continue;
             }
-            if(this.validate( f, fieldvalue ) !== true){
+            if( this.validate( f, fieldvalue ) !== true ){
                 return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
             }
         }

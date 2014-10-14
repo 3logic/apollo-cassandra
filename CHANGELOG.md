@@ -1,6 +1,7 @@
 - next
 	
 	- Default value validated
+    - Documentation updated
 
 - 1.0.3
 

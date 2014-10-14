@@ -262,6 +262,34 @@ describe('Apollo > ', function(){
                 },'Invalid Value: "a" for Field: v3 (Type: int)');
             });
 
+            it.skip('Validator is not called on default id ignore_default is true', function(done){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            'rule': {
+                                validator: function(v){ return v > 10; },
+                                ignore_default: true
+                            },
+                            default: function(){return 5;}
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var ins;
+                assert.doesNotThrow(function(){
+                    ins = new TestModel({v1:50});
+                });
+                ins.save(function(err){
+                    assert.notOk(err);
+                    done();
+                });
+            });
+
         });
 
 
