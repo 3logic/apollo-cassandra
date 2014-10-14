@@ -15,13 +15,11 @@ switch(process.env.TRAVIS){
         };
         break;
     default:
-        connection = {
-            "contactPoints": [
-                '192.168.100.64',
-                '192.168.100.65'
-            ],
-            "keyspace": "tests"
-        };
+        try{
+            connection = require('./local_conf.json');
+        }catch(e){
+            throw "Missing local_conf.json in test directory";
+        }
         break;
 }
 
@@ -199,7 +197,7 @@ describe('Apollo > ', function(){
                     key:["v1"],
                     indexes : ["v2"]
                 };
-                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var TestModel = ap.add_model("testcustom1", custom_validation_schema);
                 assert.throws(function(){
                     var ins = new TestModel({'v3' : 5});
                 },'Invalid Value: "5" for Field: v3 (Type: int)');
@@ -221,7 +219,7 @@ describe('Apollo > ', function(){
                     key:["v1"],
                     indexes : ["v2"]
                 };
-                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var TestModel = ap.add_model("testcustom2", custom_validation_schema);
                 assert.throws(function(){
                     var ins = new TestModel({'v3' : 5});
                 },'V3 must be greater than 10');
@@ -262,6 +260,34 @@ describe('Apollo > ', function(){
                 assert.throws(function(){
                     var ins = new TestModel({'v3' : 'a'});
                 },'Invalid Value: "a" for Field: v3 (Type: int)');
+            });
+
+            it.skip('Validator is not called on default id ignore_default is true', function(done){
+                var custom_validation_schema = { 
+                    fields:{
+                        v1:"int",
+                        v2:"int",
+                        v3:{
+                            'type':"int",
+                            'rule': {
+                                validator: function(v){ return v > 10; },
+                                ignore_default: true
+                            },
+                            default: function(){return 5;}
+                        } 
+                    }, 
+                    key:["v1"],
+                    indexes : ["v2"]
+                };
+                var TestModel = ap.add_model("testcustom", custom_validation_schema);
+                var ins;
+                assert.doesNotThrow(function(){
+                    ins = new TestModel({v1:50});
+                });
+                ins.save(function(err){
+                    assert.notOk(err);
+                    done();
+                });
             });
 
         });
@@ -360,16 +386,6 @@ describe('Apollo > ', function(){
                 });
             });
 
-
-            it.skip('failing basic save (wrong type)', function(done){
-                //Questo test non ha senso perchè non è valido impostare valori di tipo sbagliato in costruzione
-                var ins = new TestModel({'v1': 500, 'v2': 'foo'});
-                ins.save(function(err,result){
-                    assert.ok(err);
-                    assert.propertyVal(err,'name','apollo.model.set.invalidvalue');
-                    done();
-                });
-            });
 
             it('successful save with default fields (value)', function(done){
                 var model_test_def = { 
@@ -493,6 +509,26 @@ describe('Apollo > ', function(){
                             assert.propertyVal(results[0],'v2', 1002);
                             done();
                         });
+                    });
+                });
+                
+            });
+
+            it('faulty save with default fields returning a wrong type', function(done){
+                var model_test_def = { 
+                    fields:{v1:"int",v2:{type: "int", default: function(){return 'foo';}}, v3:"uuid"}, 
+                    key:["v1"],
+                    indexes : ["v3"]
+                };
+
+                var TestModelDef = ap.add_model("test_defaults", model_test_def);
+                
+                TestModelDef.init(function(){
+                    var ins = new TestModelDef({'v1': 500});
+                    ins.save(function(err,result){
+                        assert.ok(err);
+                        assert.propertyVal(err, 'name', 'apollo.model.save.invaliddefaultvalue');
+                        done();
                     });
                 });
                 
@@ -769,15 +805,6 @@ describe('Apollo > ', function(){
         it('save correctly a row with generic types (int, double, float)', function(done){
             var t = new Types({v1: 12.0});
             t.save(done);
-        });
-
-        it.skip('save throws an error when casting is not possible (float to int)', function(done){
-            //Questo test non è necessario perchè non è possibile settare un valore del tipo sbagliato
-            var t = new Types({v1: 12.3});
-            t.save(function(err, result){
-                assert.ok(err);
-                done();
-            });
         });
 
     });

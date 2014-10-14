@@ -184,9 +184,34 @@ john.delete(function(err){
 
 ok, goodbye John.
 
-## Querying your data
+## Virtual fields
 
-Ok, now you have a bunch of people on db. How to retrieve them?
+Your model could have some fields which are not saved on database. You can define them as `virtual`
+
+```javascript
+PersonSchema = {
+    "fields": {
+        "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },
+        "name"   : { "type": "varchar", "default": "no name provided"},
+        "surname"   : { "type": "varchar", "default": "no surname provided"},
+        ""
+        "complete_name" : { 
+            "type": "varchar", 
+            "virtual" : { 
+                get: function(){return this.name + ' ' +this.surname;},
+                set: function(value){
+                    value = value.split(' ');
+                    this.name = value[0]; 
+                    this.surname = value[1];
+                }
+            }
+        },
+    }
+}
+```
+
+A virtual field is simply defined adding a `virtual` key in field description. Virtuals can have a `get` and a `set` function, both optional (you should define at least one of them!).
+`this` inside get and set functions is bound to current instance of your model.
 
 ## Validators
 
@@ -235,6 +260,10 @@ var PersonSchema = {
 
 The error message will be `Age must be greater than 0. You provided -15`
 
+## Querying your data
+
+Ok, now you have a bunch of people on db. How to retrieve them?
+
 ### Find
 
 ```javascript
@@ -273,6 +302,21 @@ Note that all query clauses must be Cassandra compliant. You cannot, for example
 
 Complete api definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
 Anyway you can generate documentation cloning this project and launching `grunt doc`
+
+## Test
+
+To test Apollo create a file named `local_conf.json` in `test` directory with your connection configuration as below
+
+```json
+{
+    "contactPoints": [
+       "127.0.0.1",
+       "192.168.100.65",
+       "my.cassandra.com:9845"
+    ],
+    "keyspace": "tests"
+}
+```
 
 ## About
 
