@@ -296,6 +296,9 @@ BaseModel._create_table_query = function(table_name,schema){
     var rows = [],
         field_type;
     for(var k in schema.fields){
+        if(schema.fields[k].virtual){
+            continue;
+        }
         field_type = schemer.get_field_type(schema, k);
         rows.push(k + " " + field_type);
     }

@@ -296,7 +296,7 @@ describe('Apollo > ', function(){
         
 
          
-        describe('Schema conflicts on init > ',function(){
+        describe('Schema operations > ',function(){
             
             beforeEach(function(done) {
                 var BaseModel = ap.add_model("test1", model_test1, {mismatch_behaviour: 'drop'});
@@ -328,7 +328,8 @@ describe('Apollo > ', function(){
                 });
                
             });
-            
+
+                        
             it('mismatch_behaviour:drop', function(done){
                 var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"drop"});
                 TestModel.init(function(err,result){
@@ -351,6 +352,14 @@ describe('Apollo > ', function(){
                 TestModel.init(function(err,result){
                     assert.notOk(err);
                     done();
+                });
+            });
+
+            it('drop is idempotent', function(done){
+                var TestModel = ap.add_model("remove_me", model_test1);
+                TestModel.init(function(err){
+                    if(err) return done(err);
+                    TestModel.drop_table(done);
                 });
             });
 

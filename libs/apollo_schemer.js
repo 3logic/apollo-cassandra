@@ -33,8 +33,11 @@ var schemer = {
             if (typeof (output_schema.fields[k]) == 'string' )
                 output_schema.fields[k] = {'type':output_schema.fields[k]};
             else {
-                delete output_schema.fields[k].virtual;
-                delete output_schema.fields[k].default;
+                if(output_schema.fields[k].virtual){
+                    delete output_schema.fields[k];
+                }else{
+                    output_schema.fields[k] = {'type':output_schema.fields[k].type};
+                }
             }
         }
 
