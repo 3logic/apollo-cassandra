@@ -13,7 +13,7 @@ Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a>
 
 ##Installation
 
-`npm install apollo`
+`npm install --save apollo-cassandra`
 
 ##Usage
 
