@@ -1,4 +1,5 @@
 var cql = require("cassandra-driver"),
+    types = cql.types,
     SingleNodePolicy = require( __dirname + '/./single_node_policy'),
     async = require('async'),
     util = require("util"),
@@ -152,6 +153,20 @@ Apollo.prototype = {
             this._models[i]._properties.define_connection = this._define_connection;
         }
     },
+
+    /**
+     * Generate a uuid
+     * @method
+     * @returns {string} A uuid to be used in queries
+     */
+    uuid: types.uuid,
+
+    /**
+     * Generate a timeuuid
+     * @method
+     * @returns {string} A timeuuid to be used in queries
+     */
+    timeuuid: types.timeuuid,
 
 
     /**

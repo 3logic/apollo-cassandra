@@ -722,23 +722,6 @@ describe('Apollo > ', function(){
                 });
             });
 
-            it('find correctly uuid', function(done){
-                var model_find_schema_uuid = { 
-                    fields:{v1:"uuid",v2:"text"}, 
-                    key:["v1"]
-                };
-                TestModel = ap.add_model("test_find_uuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
-                var t = new TestModel({v1:"502a55af-260f-48dd-920b-eec9c2354f79", v2: "hi" });
-                t.save(function(err){
-                    if(err) return done(err);
-                    TestModel.find({v1:"502a55af-260f-48dd-920b-eec9c2354f79"},function(err,results){
-                        assert.notOk(err);
-                        assert.lengthOf(results, 1);
-                        done();
-                    });
-                });
-            });
-
         });
 
         describe('Delete > ',function(){
@@ -831,6 +814,42 @@ describe('Apollo > ', function(){
         it('save correctly a row with generic types (int, double, float)', function(done){
             var t = new Types({v1: 12.0});
             t.save(done);
+        });
+
+        it('save and find uuid', function(done){
+            var model_find_schema_uuid = { 
+                fields:{v1:"uuid",v2:"text"}, 
+                key:["v1"]
+            };
+            TestModel = apollo.add_model("test_find_uuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
+            var uuid = apollo.uuid();
+            var t = new TestModel({v1:uuid, v2: "hi" });
+            t.save(function(err){
+                if(err) return done(err);
+                TestModel.find({v1:uuid},function(err,results){
+                    assert.notOk(err);
+                    assert.lengthOf(results, 1);
+                    done();
+                });
+            });
+        });
+
+        it('save and find timeuuid', function(done){
+            var model_find_schema_uuid = { 
+                fields:{v1:"timeuuid",v2:"text"}, 
+                key:["v1"]
+            };
+            TestModel = apollo.add_model("test_find_timeuuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
+            var tuuid = apollo.timeuuid();
+            var t = new TestModel({v1:tuuid, v2: "hi" });
+            t.save(function(err){
+                if(err) return done(err);
+                TestModel.find({v1:tuuid},function(err,results){
+                    assert.notOk(err);
+                    assert.lengthOf(results, 1);
+                    done();
+                });
+            });
         });
 
     });
