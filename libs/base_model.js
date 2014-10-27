@@ -442,8 +442,6 @@ BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
 
     switch(fieldtype){
         case 'text':
-        case 'uuid':
-        case 'timeuuid':
         case 'varchar':
         case 'ascii':
         case 'inet':
@@ -457,6 +455,9 @@ BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
             return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");  
         case 'blob':
             return util.format("textAsBlob('%s')",fieldvalue.toString());
+        case 'uuid':
+        case 'timeuuid':
+            return util.format("%s",fieldvalue);
         default:
             return fieldvalue;
     }

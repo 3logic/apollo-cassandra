@@ -722,6 +722,23 @@ describe('Apollo > ', function(){
                 });
             });
 
+            it('find correctly uuid', function(done){
+                var model_find_schema_uuid = { 
+                    fields:{v1:"uuid",v2:"text"}, 
+                    key:["v1"]
+                };
+                TestModel = ap.add_model("test_find_uuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
+                var t = new TestModel({v1:"502a55af-260f-48dd-920b-eec9c2354f79", v2: "hi" });
+                t.save(function(err){
+                    if(err) return done(err);
+                    TestModel.find({v1:"502a55af-260f-48dd-920b-eec9c2354f79"},function(err,results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 1);
+                        done();
+                    });
+                });
+            });
+
         });
 
         describe('Delete > ',function(){
