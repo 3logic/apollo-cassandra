@@ -285,8 +285,7 @@ Let's see a complex query
 
 ```javascript
 var query = {
-    name: 'John', // stays f
-    or name='john' 
+    name: 'John', // stays for name='john' 
     age : { '$gt':10 }, // stays for age>10 You can also use $gte, $lt, $lte
     surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
     $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
