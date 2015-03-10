@@ -194,7 +194,6 @@ PersonSchema = {
         "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },
         "name"   : { "type": "varchar", "default": "no name provided"},
         "surname"   : { "type": "varchar", "default": "no surname provided"},
-        ""
         "complete_name" : { 
             "type": "varchar", 
             "virtual" : { 
@@ -205,7 +204,7 @@ PersonSchema = {
                     this.surname = value[1];
                 }
             }
-        },
+        }
     }
 }
 ```

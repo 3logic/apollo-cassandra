@@ -7,15 +7,15 @@ var util = require('util'),
 
 /*
 Valid consistencies:
-any 
-one        
-two        
-three      
-quorum     
-all        
+any
+one
+two
+three
+quorum
+all
 localQuorum
-eachQuorum 
-localOne */  
+eachQuorum
+localOne */
 var CONSISTENCY_FIND   = 'quorum',
     CONSISTENCY_SAVE   = 'quorum',
     CONSISTENCY_DEFINE = 'all',
@@ -32,9 +32,9 @@ var cql_consistencies = cql.types.consistencies;
 
 var TYPE_MAP = require('./cassandra_types');
 var check_db_tablename = function (obj){
-    return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) ); 
+    return ( typeof obj == 'string' && /^[a-z]+[a-z0-9_]*/.test(obj) );
 };
-   
+
 var noop = function(){};
 
 /**
@@ -65,14 +65,14 @@ var BaseModel = function(instance_values){
         generic_validator_message_func = function(value, prop_name, fieldtype){return util.format('Invalid Value: "%s" for Field: %s (Type: %s)', value, prop_name, fieldtype); };
     this._validators = {};
     var validators;
-    
+
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
         var property_name = fields_keys[i],
             field = fields[fields_keys[i]],
             fieldtype = schemer.get_field_type(this.constructor._properties.schema,fields_keys[i]),
-            fieldvalue = instance_values[fields_keys[i]];        
-        
-        
+            fieldvalue = instance_values[fields_keys[i]];
+
+
         var type_fieldvalidator = TYPE_MAP.generic_type_validator(TYPE_MAP[fieldtype].validator);
         validators = [type_fieldvalidator];
         if( typeof field.rule != 'undefined' ){
@@ -98,7 +98,7 @@ var BaseModel = function(instance_values){
         this._validators[property_name] = validators;
 
         var validation_func = this.constructor._validate.bind(this.constructor, validators);
-        
+
         var setter = validation_wrapper( default_setter.bind(_field_values, property_name ), validation_func, property_name, fieldtype),
             getter = default_getter.bind(_field_values, property_name);
 
@@ -201,7 +201,7 @@ BaseModel._execute_definition_query = function(query, params, consistency, callb
         var properties = this._properties,
             conn = properties.define_connection;
         conn.execute(query, params, {'prepare': false, 'consistency': consistency, 'fetchSize': 0}, callback);
-    }.bind(this));    
+    }.bind(this));
 };
 
 /**
@@ -223,7 +223,7 @@ BaseModel._execute_batch = function(queries, consistency, callback){
 
 /**
  * Create table on cassandra for this model
- * @param  {BaseModel~GenericCallback} callback Called on creation termination 
+ * @param  {BaseModel~GenericCallback} callback Called on creation termination
  * @protected
  * @static
  */
@@ -233,16 +233,16 @@ BaseModel._create_table = function(callback){
         model_schema = properties.schema,
         mismatch_behaviour = properties.mismatch_behaviour,
         cql = properties.cql;
-    
+
     var consistency = cql_consistencies[CONSISTENCY_DEFINE];
 
     //check for existence of table on DB and if it matches this model's schema
     this._get_db_table_schema(function(err,db_schema){
-        
+
         if(err) return callback(err);
 
         var after_dbcreate = function(err, result){
-            if (err) return callback(build_error('model.tablecreation.dbcreate', err));   
+            if (err) return callback(build_error('model.tablecreation.dbcreate', err));
             //index creation
             if(model_schema.indexes instanceof Array){
                 async.eachSeries(model_schema.indexes, function(idx,next){
@@ -255,13 +255,13 @@ BaseModel._create_table = function(callback){
             }
             else
                 callback();
-           
+
         }.bind(this);
 
-       
+
         if (db_schema){// check if schemas match
-            var normalized_model_schema = schemer.normalize_model_schema(model_schema),     
-                normalized_db_schema = schemer.normalize_model_schema(db_schema); 
+            var normalized_model_schema = schemer.normalize_model_schema(model_schema),
+                normalized_db_schema = schemer.normalize_model_schema(db_schema);
 
             if (!lodash.isEqual(normalized_model_schema, normalized_db_schema)){
                 if(mismatch_behaviour === 'drop'){
@@ -269,13 +269,13 @@ BaseModel._create_table = function(callback){
                         if (err) return callback(build_error('model.tablecreation.dbcreate', err));
                         var  create_query = this._create_table_query(table_name,model_schema);
                         this._execute_definition_query(create_query, [], consistency, after_dbcreate);
-                      
+
                     }.bind(this));
                 } else{
                     return callback(build_error('model.tablecreation.schemamismatch', table_name));
                 }
             }
-            else callback();               
+            else callback();
         }
         else{  // if not existing, it's created anew
             var  create_query = this._create_table_query(table_name,model_schema);
@@ -285,7 +285,7 @@ BaseModel._create_table = function(callback){
 };
 
 /**
- * Generate a query to create this model table 
+ * Generate a query to create this model table
  * @param  {string} table_name Model table name
  * @param  {object} schema     Schema of the model
  * @return {string}            The creation query
@@ -300,14 +300,14 @@ BaseModel._create_table_query = function(table_name,schema){
             continue;
         }
         field_type = schemer.get_field_type(schema, k);
-        rows.push(k + " " + field_type);
+        rows.push(util.format('"%s" %s',k,field_type));
     }
 
     var partition_key = schema.key[0],
         clustering_key = schema.key.slice(1,schema.key.length);
 
-    partition_key  = partition_key instanceof Array ? partition_key.join(",") : partition_key;
-    clustering_key = clustering_key.length ? ','+clustering_key.join(",") : '';
+    partition_key  = partition_key instanceof Array ? partition_key.map(function(v){return util.format('"%s"',v); }).join(",") : util.format('"%s"',partition_key);
+    clustering_key = clustering_key.length ? ','+clustering_key.map(function(v){return util.format('"%s"',v); }).join(",") : '';
 
     query = util.format(
         'CREATE TABLE IF NOT EXISTS  "%s" (%s , PRIMARY KEY((%s)%s));',
@@ -316,6 +316,7 @@ BaseModel._create_table_query = function(table_name,schema){
         partition_key,
         clustering_key
     );
+
     return query;
 };
 
@@ -329,8 +330,8 @@ BaseModel._create_table_query = function(table_name,schema){
  */
 BaseModel._create_index_query = function(table_name, index_name){
     var query = util.format(
-        "CREATE INDEX IF NOT EXISTS ON %s (%s);", 
-        table_name, 
+        "CREATE INDEX IF NOT EXISTS ON %s (%s);",
+        table_name,
         index_name
     );
     return query;
@@ -357,7 +358,7 @@ BaseModel._get_db_table_schema = function (callback){
         var db_schema = {fields:{}};
         for(var r in result.rows){
             var row = result.rows[r];
-            db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_dbvalidator(row.validator);                
+            db_schema.fields[row.column_name] = TYPE_MAP.find_type_by_dbvalidator(row.validator);
             if(row.type == 'partition_key'){
                 if(!db_schema.key)
                     db_schema.key = [[]];
@@ -367,7 +368,7 @@ BaseModel._get_db_table_schema = function (callback){
                 if(!db_schema.key)
                     db_schema.key = [[]];
                 db_schema.key[row.component_index+1] = row.column_name;
-            }            
+            }
             if(row.index_name){
                 if(!db_schema.indexes)
                     db_schema.indexes = [];
@@ -402,7 +403,7 @@ BaseModel._execute_table_query = function(query, params, consistency, callback){
         this.init(function(err){
             if(err){
                 return callback(err);
-            }        
+            }
             do_execute_query(callback);
         });
     }
@@ -417,7 +418,7 @@ BaseModel._execute_table_query = function(query, params, consistency, callback){
  * @return {string}            String to be used in query
  * @protected
  * @throws Error if invalid field value given its type
- * 
+ *
  */
 BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
     /* jshint sub: true */
@@ -452,12 +453,12 @@ BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
             if( isNaN( fieldvalue.getTime() ) )
                 throw(build_error('model.save.invalidvalue',fieldvalue,fieldname,fieldtype));
 
-            return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");  
+            return ("\'" + fieldvalue.toISOString().replace(/\..+/, '') + "\'");
         case 'blob':
             return util.format("textAsBlob('%s')",fieldvalue.toString());
         case 'uuid':
         case 'timeuuid':
-            return util.format("%s",fieldvalue);
+            return util.format("%s",fieldvalue.toString());
         default:
             return fieldvalue;
     }
@@ -489,15 +490,15 @@ BaseModel._create_where_clause = function(query_ob){
             var rel_keys = Object.keys(field_relation);
             if(rel_keys.length > 1)
                 throw(build_error('model.find.multiop'));
-            
+
             var cql_ops = {'$eq':'=', '$gt':'>', '$lt':'<', '$gte':'>=', '$lte':'<=', '$in':'IN'};
-            
+
             var first_key = rel_keys[0],
                 first_value = field_relation[first_key];
             if(first_key.toLowerCase() in cql_ops){
                 first_key = first_key.toLowerCase();
                 var op = cql_ops[first_key];
-                
+
                 if(first_key == '$in' && !(first_value instanceof Array))
                     throw(build_error('model.find.invalidinset'));
                 query_relations.push( util.format(
@@ -516,7 +517,7 @@ BaseModel._create_where_clause = function(query_ob){
 /**
  * Given a complete query object, generate the SELECT query
  * @param  {object} query_ob Object representing the query
- * @param  {object} options  Options for the query. Unused right now 
+ * @param  {object} options  Options for the query. Unused right now
  * @return {string}          Select statement
  * @protected
  */
@@ -534,15 +535,15 @@ BaseModel._create_find_query = function(query_ob, options){
             var order_item_keys = Object.keys(query_item);
             if(order_item_keys.length > 1)
                 throw(build_error('model.find.multiorder'));
-            
+
             var cql_orderdir = {'$asc':'ASC', '$desc':'DESC'};
             if(order_item_keys[0].toLowerCase() in cql_orderdir){
-                
+
                 var order_fields = query_item[order_item_keys[0]];
-                
+
                 if(!(order_fields instanceof Array))
                     order_fields = [order_fields];
-                
+
                 for(var i in order_fields){
                     order_keys.push(util.format(
                         '%s %s',
@@ -563,7 +564,7 @@ BaseModel._create_find_query = function(query_ob, options){
     var query = util.format(
         'SELECT * FROM "%s" %s %s %s ALLOW FILTERING;',
         this._properties.table_name,
-        where, 
+        where,
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
         limit ? 'LIMIT '+limit : ' '
     );
@@ -589,7 +590,7 @@ BaseModel.get_table_name = function(){
  * @public
  */
 BaseModel.is_table_ready = function(){
-    return this._ready === true;   
+    return this._ready === true;
 };
 
 /**
@@ -602,7 +603,7 @@ BaseModel.init = function(options, callback){
         callback = options;
         options = undefined;
     }
-    
+
     var after_create = function(err, result){
         if(!err)
             this._ready = true;
@@ -626,7 +627,7 @@ BaseModel.init = function(options, callback){
  * @param  {BaseModel~cql_consistencies}    consistency - Consistency type
  * @param  {BaseModel~QueryExecution}       callback - Called on execution end
  */
-BaseModel.execute_query = function(query, params, consistency, callback){    
+BaseModel.execute_query = function(query, params, consistency, callback){
     this._ensure_connected(function(err){
         if(err) return callback(err);
         consistency = (typeof consistency == 'string' ? cql_consistencies[consistency] : consistency);
@@ -637,7 +638,7 @@ BaseModel.execute_query = function(query, params, consistency, callback){
                 callback(err, result);
             }
         }.bind(this));
-    }.bind(this));    
+    }.bind(this));
 };
 
 /**
@@ -693,7 +694,7 @@ BaseModel.find = function(query_ob, options, callback){
                 delete(res.columns);
                 return res;
             });
-            callback(null,results); 
+            callback(null,results);
         }
     }.bind(this));
 
@@ -773,7 +774,7 @@ BaseModel.prototype._get_default_value = function(fieldname){
             return schema.fields[fieldname].default;
     }
     else
-        return undefined; 
+        return undefined;
 };
 
 
@@ -835,7 +836,7 @@ BaseModel.prototype.save = function(options, callback){
         callback = options;
         options = {};
     }
-    
+
     var identifiers = [], values = [],
         properties = this.constructor._properties,
         schema = properties.schema,
@@ -849,7 +850,7 @@ BaseModel.prototype.save = function(options, callback){
         if(schema.fields[f]['virtual'])
             continue;
 
-        // check field value        
+        // check field value
         var fieldtype = schemer.get_field_type(schema,f),
             fieldvalue = this[f],
             fieldvalidator = TYPE_MAP[fieldtype].validator;
@@ -872,7 +873,7 @@ BaseModel.prototype.save = function(options, callback){
             if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
                 return callback(build_error('model.save.unsetkey',f));
         }
-            
+
         identifiers.push(f);
 
         try{

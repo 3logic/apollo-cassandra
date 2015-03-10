@@ -9,7 +9,7 @@ var TYPE_MAP = require('./cassandra_types'),
             column3 : "tipo3"
         },
         key : ["column1","column2"],
-        indexes : ["column1","column3"] 
+        indexes : ["column1","column3"]
     }
 */
 
@@ -19,7 +19,7 @@ var schemer = {
     normalize_model_schema: function(model_schema){
         var output_schema = lodash.clone(model_schema,true);
         var good_fields = {fields : true, key:true, indexes:true};
-        
+
         for(var k in output_schema){
             if(!(k in good_fields))
                 delete(output_schema[k]);
@@ -46,7 +46,7 @@ var schemer = {
         }
 
         if(output_schema.indexes){
-            
+
 
             output_schema.indexes.sort(index_sort);
         }
@@ -72,9 +72,9 @@ var schemer = {
         }
 
         if( typeof(model_schema.key[0]) == "string" ){
-            if(!(model_schema.key[0] in model_schema.fields)) 
+            if(!(model_schema.key[0] in model_schema.fields))
                 throw("Partition Key as string must match a column name");
-            if( model_schema.fields[model_schema.key[0]].virtual ) 
+            if( model_schema.fields[model_schema.key[0]].virtual )
                 throw("Partition Key must match a db column name, can't be a virtual field name");
         }
         else if(model_schema.key[0] instanceof Array){
@@ -84,19 +84,19 @@ var schemer = {
             for(var j in model_schema.key[0]){
                 if((typeof(model_schema.key[0][j]) != "string") || !(model_schema.key[0][j] in model_schema.fields))
                     throw("Partition Key array must contain only column names");
-                if( model_schema.fields[model_schema.key[0][j]].virtual ) 
+                if( model_schema.fields[model_schema.key[0][j]].virtual )
                     throw("Partition Key array must contain only db column names, can't contain virtual field names");
             }
         }
         else {
             throw("Partition Key must be a column name string, or array of");
         }
-        
+
         for(var i in model_schema.key){
             if(i>0){
                 if((typeof(model_schema.key[i]) != "string") || !(model_schema.key[i] in model_schema.fields))
                     throw("Clustering Keys must match column names");
-                if( model_schema.fields[model_schema.key[i]].virtual ) 
+                if( model_schema.fields[model_schema.key[i]].virtual )
                     throw("Clustering Keys must match db column names, can't be virtual field names");
             }
         }
@@ -107,14 +107,14 @@ var schemer = {
             for(var l in model_schema.indexes){
                 if((typeof(model_schema.indexes[l]) != "string") || !(model_schema.indexes[l] in model_schema.fields))
                     throw("Indexes must be an array of column name strings");
-                if( model_schema.fields[model_schema.indexes[l]].virtual ) 
+                if( model_schema.fields[model_schema.indexes[l]].virtual )
                     throw("Indexes must be an array of db column names, can't contain virtual field names");
             }
         }
     },
 
     get_field_type: function(model_schema, fieldname){
-        var fieldob = model_schema.fields[fieldname];    
+        var fieldob = model_schema.fields[fieldname];
 
         if(typeof fieldob == 'string')
             return fieldob;
@@ -137,7 +137,7 @@ var schemer = {
                 return true;
         }
         else
-            return true; 
+            return true;
     }
 
 };

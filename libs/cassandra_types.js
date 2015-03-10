@@ -18,7 +18,7 @@ validators.is_number = function (obj){
 
 validators.is_string = function (obj){
     return check.string(obj);
-};    
+};
 
 validators.is_datetime = function (obj){
     return check.date(new Date(obj));
@@ -29,12 +29,11 @@ validators.is_anything = function (obj){
 };
 
 validators.is_uuid = function (obj){
-    if(!check.string(obj))
-        return false;
+    var str = obj.toString();
 
     //var pattern_uuid4 = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
     var pattern_uuid1 = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
-    return pattern_uuid1.test(obj);
+    return pattern_uuid1.test(str);
 };
 
 validators.is_inet = function (obj){
@@ -51,12 +50,12 @@ validators.is_inet = function (obj){
 var TYPE_MAP = {};
 
 TYPE_MAP = {
-    "ascii"     : {validator : validators.is_string,   dbvalidator : "org.apache.cassandra.db.marshal.AsciiType"},    
+    "ascii"     : {validator : validators.is_string,   dbvalidator : "org.apache.cassandra.db.marshal.AsciiType"},
     "bigint"    : {validator : validators.is_integer,  dbvalidator : "org.apache.cassandra.db.marshal.LongType"},
     "blob"      : {validator : validators.is_anything, dbvalidator : "org.apache.cassandra.db.marshal.BytesType"},
-    "boolean"   : {validator : validators.is_boolean,  dbvalidator : "org.apache.cassandra.db.marshal.BooleanType"},        
+    "boolean"   : {validator : validators.is_boolean,  dbvalidator : "org.apache.cassandra.db.marshal.BooleanType"},
     "counter"   : {validator : validators.is_integer,  dbvalidator : "org.apache.cassandra.db.marshal.CounterColumnType"},
-    "decimal"   : {validator : validators.is_number,   dbvalidator : "org.apache.cassandra.db.marshal.DecimalType"},        
+    "decimal"   : {validator : validators.is_number,   dbvalidator : "org.apache.cassandra.db.marshal.DecimalType"},
     "double"    : {validator : validators.is_number,   dbvalidator : "org.apache.cassandra.db.marshal.DoubleType"},
     "float"     : {validator : validators.is_number,   dbvalidator : "org.apache.cassandra.db.marshal.FloatType"},
     "inet"      : {validator : validators.is_inet,     dbvalidator : "org.apache.cassandra.db.marshal.InetAddressType"},
@@ -65,7 +64,7 @@ TYPE_MAP = {
     "timestamp" : {validator : validators.is_datetime, dbvalidator : "org.apache.cassandra.db.marshal.TimestampType"},
     "timeuuid"  : {validator : validators.is_uuid,     dbvalidator : "org.apache.cassandra.db.marshal.TimeUUIDType"},
     "uuid"      : {validator : validators.is_uuid,     dbvalidator : "org.apache.cassandra.db.marshal.UUIDType"},
-    "varchar"   : {validator : validators.is_string,   dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},    
+    "varchar"   : {validator : validators.is_string,   dbvalidator : "org.apache.cassandra.db.marshal.UTF8Type"},
     "varint"    : {validator : validators.is_integer,  dbvalidator : "org.apache.cassandra.db.marshal.IntegerType"}
 };
 
@@ -81,7 +80,7 @@ TYPE_MAP.generic_type_validator = function(validator){
 };
 
 TYPE_MAP.find_type_by_dbvalidator = function(val){
-    for(var t in this){            
+    for(var t in this){
         if (this[t].dbvalidator == val)
             return t;
     }

@@ -20,7 +20,7 @@ var noop = function(){};
 var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
     options = options || {};
-    this._options = lodash.defaults(options, { 
+    this._options = lodash.defaults(options, {
         replication_strategy : {'class' : 'SimpleStrategy', 'replication_factor' : DEFAULT_REPLICATION_FACTOR }
     });
     this._models = {};
@@ -47,11 +47,11 @@ Apollo.prototype = {
          * Create a new instance for the model
          * @class Model
          * @augments BaseModel
-         * @param {object} instance_values Key/value object containing values of the row  * 
+         * @param {object} instance_values Key/value object containing values of the row  *
          * @classdesc Generic model. Use it statically to find documents on Cassandra. Any instance represent a row retrieved or which can be saved on DB
-         */        
+         */
         var Model = function(instance_values){
-           BaseModel.apply(this,Array.prototype.slice.call(arguments));           
+           BaseModel.apply(this,Array.prototype.slice.call(arguments));
         };
 
         util.inherits(Model,BaseModel);
@@ -107,7 +107,7 @@ Apollo.prototype = {
       * @private
       */
     _assert_keyspace : function(callback){
-        
+
         var client = this._get_system_client();
         var keyspace_name = this._connection.keyspace,
             replication_text = '',
@@ -123,7 +123,7 @@ Apollo.prototype = {
         client.execute(query, function(err,result){
             client.shutdown(function(){
                 callback(err,result);
-            });            
+            });
         });
     },
 
@@ -134,13 +134,13 @@ Apollo.prototype = {
      */
     _set_client : function(client){
         var define_connection_options = lodash.clone(this._connection);
-        
+
         define_connection_options.policies = {
             loadBalancing: new SingleNodePolicy()
         };
 
         //define_connection_options.hosts = define_connection_options.contactPoints;
-            
+
         this._client = client;
         this._define_connection = new cql.Client(define_connection_options);
 
@@ -159,15 +159,20 @@ Apollo.prototype = {
      * @method
      * @returns {string} A uuid to be used in queries
      */
-    uuid: types.uuid,
+    uuid: function(){
+        var uuid = types.Uuid.random();
+        return uuid.toString();
+    },
 
     /**
      * Generate a timeuuid
      * @method
      * @returns {string} A timeuuid to be used in queries
      */
-    timeuuid: types.timeuuid,
-
+    timeuuid: function(){
+        var timeuuid = types.TimeUuid.now();
+        return timeuuid.toString();
+    },
 
     /**
      * Connect your instance of Apollo to Cassandra
@@ -177,7 +182,7 @@ Apollo.prototype = {
         var on_keyspace = function(err){
             if(err){ return callback(err);}
             this._set_client(new cql.Client(this._connection));
-            callback(err, this);            
+            callback(err, this);
         };
 
         if(this._keyspace){
@@ -197,7 +202,7 @@ Apollo.prototype = {
      */
     add_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
-            throw("Si deve specificare un nome per il modello");    
+            throw("Si deve specificare un nome per il modello");
 
         options = options || {};
         options.mismatch_behaviour = options.mismatch_behaviour || 'fail';
@@ -206,7 +211,7 @@ Apollo.prototype = {
 
         //model_schema = schemer.normalize_model_schema(model_schema);
         schemer.validate_model_schema(model_schema);
-        
+
         var base_properties = {
             name : model_name,
             schema : model_schema,
@@ -230,12 +235,12 @@ Apollo.prototype = {
         return this._models[model_name] || null;
     },
 
-    
+
     /**
      * Chiusura della connessione
      * @param  {Function} callback callback
      */
-    close : function(callback){ 
+    close : function(callback){
         callback = callback || noop;
 
         if(!this._client){

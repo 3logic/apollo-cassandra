@@ -26,13 +26,13 @@ switch(process.env.TRAVIS){
 describe('Apollo > ', function(){
 
     this.timeout(10000);
-    
+
     describe('Global library', function(){
 
         var apollo;
 
         describe('New Apollo > ', function(){
-            
+
             it('is a valid instance', function(){
                 apollo = new Apollo(connection);
                 assert.instanceOf(apollo, Apollo, 'apollo is an instance of Apollo');
@@ -46,7 +46,7 @@ describe('Apollo > ', function(){
         });
     });
 
-    
+
     describe('On apollo instances > ',function(){
 
         var ap;
@@ -56,7 +56,7 @@ describe('Apollo > ', function(){
                 ap = new Apollo(connection);
                 // Setup
                 ap.connect(function(err){
-                    if(err) return done(err);      
+                    if(err) return done(err);
                     var BaseModel = ap.add_model("test1", model_test1);
                     BaseModel.drop_table(done);
                 });
@@ -71,45 +71,45 @@ describe('Apollo > ', function(){
 
         });
 
-        var model_test1 = { 
-                fields:{v1:"int",v2:"int",v3:"int"}, 
+        var model_test1 = {
+                fields:{v1:"int",v2:"int",v3:"int"},
                 key:["v1"],
                 indexes : ["v2"]
             };
 
-        var model_test2 = { 
-                fields:{v1:"int",v2:"int",v3:"text"}, 
+        var model_test2 = {
+                fields:{v1:"int",v2:"int",v3:"text"},
                 key:["v1"],
                 indexes : ["v2"]
             };
 
-        var model_test3 = { 
-                fields:{v1:"int",v2:"int",v3:"int"}, 
+        var model_test3 = {
+                fields:{v1:"int",v2:"int",v3:"int"},
                 key:["v1"],
                 indexes : ["v3"]
             };
 
-        var faulty_model_test1 = { 
-                fields:{v1:"int",v2:"int",v3:"foo"}, 
+        var faulty_model_test1 = {
+                fields:{v1:"int",v2:"int",v3:"foo"},
                 key:["v1"],
                 indexes : ["v2"]
             };
 
-        var model_testvirtual1 = { 
+        var model_testvirtual1 = {
                 fields:{
                     name:"text",
                     surname:"text",
-                    'complete_name':{'type':'text', virtual:{'get': function(){return this.name+' '+this.surname} } } 
-                }, 
+                    'complete_name':{'type':'text', virtual:{'get': function(){return this.name+' '+this.surname} } }
+                },
                 key:[["name", "surname"]]
             };
 
-        var model_testvirtual2 = { 
+        var model_testvirtual2 = {
                 fields:{
                     name:"text",
                     surname:"text",
-                    'complete_name':{'type':'text', virtual:{'set': function(v){var parts = v.split(' '); this.name = parts[0]; this.surname = parts[parts.length -1]; } } } 
-                }, 
+                    'complete_name':{'type':'text', virtual:{'set': function(v){var parts = v.split(' '); this.name = parts[0]; this.surname = parts[parts.length -1]; } } }
+                },
                 key:[["name", "surname"]]
             };
 
@@ -131,9 +131,9 @@ describe('Apollo > ', function(){
             var schema = {
                 fields:{
                     v1:{
-                        type: "int", 
-                        "default": {'im':'a wrong object'} 
-                    } 
+                        type: "int",
+                        "default": {'im':'a wrong object'}
+                    }
                 }
             };
             assert.throws(function(){
@@ -153,7 +153,7 @@ describe('Apollo > ', function(){
         it('Init works even if not already connected', function(done){
             var ap2 =  new Apollo(connection);
             var Model = ap2.add_model("test1", model_test1);
-            Model.find( {'v1' : 1}, done);            
+            Model.find( {'v1' : 1}, done);
         });
 
         it('Find works if not already connected', function(done){
@@ -184,7 +184,7 @@ describe('Apollo > ', function(){
 
             it('Field validation', function(){
                 var TestModel = ap.add_model("test1", model_test1);
-                
+
                 assert.throws(function(){
                     var ins = new TestModel({'v1' : 'a'});
                 },'Invalid Value: "a" for Field: v1 (Type: int)');
@@ -192,8 +192,8 @@ describe('Apollo > ', function(){
 
 
             it('Field custom validator', function(){
-                var custom_validation_schema = { 
-                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v > 10; } } }, 
+                var custom_validation_schema = {
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v > 10; } } },
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -204,7 +204,7 @@ describe('Apollo > ', function(){
             });
 
             it('Field custom validator with custom message', function(){
-                var custom_validation_schema = { 
+                var custom_validation_schema = {
                     fields:{
                         v1:"int",
                         v2:"int",
@@ -214,8 +214,8 @@ describe('Apollo > ', function(){
                                 validator: function(v){ return v > 10; },
                                 message : 'V3 must be greater than 10'
                             }
-                        } 
-                    }, 
+                        }
+                    },
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -226,7 +226,7 @@ describe('Apollo > ', function(){
             });
 
             it('Field custom validator with custom generated message', function(){
-                var custom_validation_schema = { 
+                var custom_validation_schema = {
                     fields:{
                         v1:"int",
                         v2:"int",
@@ -238,8 +238,8 @@ describe('Apollo > ', function(){
                                     return 'v3 must be greater than 10, ' + value + ' is not';
                                 }
                             }
-                        } 
-                    }, 
+                        }
+                    },
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -251,8 +251,8 @@ describe('Apollo > ', function(){
             });
 
             it('Default validator is called after custom validator', function(){
-                var custom_validation_schema = { 
-                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v != 10; } } }, 
+                var custom_validation_schema = {
+                    fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v != 10; } } },
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -262,8 +262,8 @@ describe('Apollo > ', function(){
                 },'Invalid Value: "a" for Field: v3 (Type: int)');
             });
 
-            it.skip('Validator is not called on default id ignore_default is true', function(done){
-                var custom_validation_schema = { 
+            it.skip('Validator is not called on default if ignore_default is true', function(done){
+                var custom_validation_schema = {
                     fields:{
                         v1:"int",
                         v2:"int",
@@ -274,8 +274,8 @@ describe('Apollo > ', function(){
                                 ignore_default: true
                             },
                             default: function(){return 5;}
-                        } 
-                    }, 
+                        }
+                    },
                     key:["v1"],
                     indexes : ["v2"]
                 };
@@ -293,11 +293,8 @@ describe('Apollo > ', function(){
         });
 
 
-        
-
-         
         describe('Schema operations > ',function(){
-            
+
             beforeEach(function(done) {
                 var BaseModel = ap.add_model("test1", model_test1, {mismatch_behaviour: 'drop'});
                 BaseModel.drop_table(function(err){
@@ -307,43 +304,43 @@ describe('Apollo > ', function(){
             });
 
             var conflict_model = model_test3;
-            
+
             it('mismatch_behaviour:default(fail)', function(done){
                 var TestModel = ap.add_model("test1", conflict_model);
 
                 TestModel.init(function(err,result){
                     assert.ok(err);
-                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');                      
+                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
                     done();
                 });
-               
+
             });
-            
+
             it('mismatch_behaviour:fail', function(done){
                 var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"fail"});
                 TestModel.init(function(err,result){
                     assert.ok(err);
-                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');                    
+                    assert.propertyVal(err,'name','apollo.model.tablecreation.schemamismatch');
                     done();
                 });
-               
+
             });
 
-                        
+
             it('mismatch_behaviour:drop', function(done){
                 var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"drop"});
                 TestModel.init(function(err,result){
-                    assert.notOk(err);                    
+                    assert.notOk(err);
                     done();
                 });
-               
+
             });
-            
+
             it('mismatch_behaviour invalid', function(){
                 assert.throw(
-                    function(){ 
+                    function(){
                         var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"foo"});
-                    }, /mismatch_behaviour.+foo/ 
+                    }, /mismatch_behaviour.+foo/
                 );
             });
 
@@ -366,7 +363,7 @@ describe('Apollo > ', function(){
         });
 
 
-        
+
         describe('Save > ',function(){
             var TestModel;
 
@@ -397,14 +394,14 @@ describe('Apollo > ', function(){
 
 
             it('successful save with default fields (value)', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(err){
                     if(err) return done(err);
                     var ins = new TestModelDef({'v1': 500});
@@ -414,18 +411,18 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
             it('successful save with default fields, value given', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(){
                     var ins = new TestModelDef({'v1': 500, 'v2':40});
                     ins.save(function(err,result){
@@ -434,19 +431,19 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
 
             it('successful save with default fields, null value given', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: 42}, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(){
                     var ins = new TestModelDef({'v1': 500, 'v2':null});
                     ins.save(function(err,result){
@@ -455,18 +452,18 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
             it('successful save with default fields (js function)', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: function(){return 43;}}, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: function(){return 43;}}, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(){
                     var ins = new TestModelDef({'v1': 501});
                     ins.save(function(err,result){
@@ -475,12 +472,12 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
             it('successful save with default fields (db function)', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:"int", v3:{type:"uuid",default:{"$db_function":"uuid()"}} }, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:"int", v3:{type:"uuid",default:{"$db_function":"uuid()"}} },
                     key:["v1"],
                     indexes : ["v3"]
                 };
@@ -495,19 +492,19 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
 
             it('successful save with default fields (js function on instance fields)', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2;} }, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: function(){return this.v1*2;} }, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(){
                     var ins = new TestModelDef({'v1': 501});
                     ins.save(function(err,result){
@@ -520,18 +517,18 @@ describe('Apollo > ', function(){
                         });
                     });
                 });
-                
+
             });
 
             it('faulty save with default fields returning a wrong type', function(done){
-                var model_test_def = { 
-                    fields:{v1:"int",v2:{type: "int", default: function(){return 'foo';}}, v3:"uuid"}, 
+                var model_test_def = {
+                    fields:{v1:"int",v2:{type: "int", default: function(){return 'foo';}}, v3:"uuid"},
                     key:["v1"],
                     indexes : ["v3"]
                 };
 
                 var TestModelDef = ap.add_model("test_defaults", model_test_def);
-                
+
                 TestModelDef.init(function(){
                     var ins = new TestModelDef({'v1': 500});
                     ins.save(function(err,result){
@@ -540,7 +537,7 @@ describe('Apollo > ', function(){
                         done();
                     });
                 });
-                
+
             });
 
         });
@@ -548,10 +545,10 @@ describe('Apollo > ', function(){
         describe('Find > ',function(){
             var TestModel;
 
-            var model_find_schema = { 
-                fields:{v1:"int",v2:"text",v3:"int",v4:"text",v5:"boolean",v6:'int'}, 
+            var model_find_schema = {
+                fields:{v1:"int",v2:"text",v3:"int",v4:"text",v5:"boolean",v6:'int'},
                 key:[["v1","v2"],"v3", "v6"],
-                indexes:["v4"] 
+                indexes:["v4"]
             };
 
             beforeEach(function(done) {
@@ -559,7 +556,7 @@ describe('Apollo > ', function(){
 
                 TestModel = ap.add_model("test_find", model_find_schema, {'mismatch_behaviour':'drop'});
                 // TestModel.drop_table(function(){
-                
+
                     TestModel.init(function(err,result){
 
                         if(err) return done(err);
@@ -597,7 +594,7 @@ describe('Apollo > ', function(){
                     });
 
                 // });
-                
+
             });
 
             it('basic find', function(done){
@@ -767,8 +764,8 @@ describe('Apollo > ', function(){
     describe('Types tests >', function(){
 
         var apollo,
-            model_types = { 
-                fields:{v1:"int",v2:"double",v3:"float"}, 
+            model_types = {
+                fields:{v1:"int",v2:"double",v3:"float"},
                 key:["v1"]
             },
             Types;
@@ -776,14 +773,14 @@ describe('Apollo > ', function(){
         before(function(done) {
             apollo = new Apollo(connection);
             apollo.connect(function(err){
-                if(err) return done(err);                
+                if(err) return done(err);
                 Types = apollo.add_model( 'types', model_types );
                 Types.drop_table(function(err){
                     if(err) return done(err);
                     Types.init(function(err){
                         if(err) return done(err);
                         async.each(
-                            [1,2,3,4,5,6,7,8,9,10], 
+                            [1,2,3,4,5,6,7,8,9,10],
                             function(i, cb){
                                 var t = new Types({v1: i, v2: i * 1.0, v3: i * 1.0});
                                 t.save(cb);
@@ -792,7 +789,7 @@ describe('Apollo > ', function(){
                         );
                     });
                 });
-                
+
             });
         });
 
@@ -803,7 +800,7 @@ describe('Apollo > ', function(){
                 done(err);
             });
         });
-        
+
         it('select throw an exception for wrong type', function(done){
             Types.find({'v1': 10.1}, function(err, result){
                 assert.ok(err);
@@ -817,8 +814,8 @@ describe('Apollo > ', function(){
         });
 
         it('save and find uuid', function(done){
-            var model_find_schema_uuid = { 
-                fields:{v1:"uuid",v2:"text"}, 
+            var model_find_schema_uuid = {
+                fields:{v1:"uuid",v2:"text"},
                 key:["v1"]
             };
             TestModel = apollo.add_model("test_find_uuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
@@ -835,8 +832,8 @@ describe('Apollo > ', function(){
         });
 
         it('save and find timeuuid', function(done){
-            var model_find_schema_uuid = { 
-                fields:{v1:"timeuuid",v2:"text"}, 
+            var model_find_schema_uuid = {
+                fields:{v1:"timeuuid",v2:"text"},
                 key:["v1"]
             };
             TestModel = apollo.add_model("test_find_timeuuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
