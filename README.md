@@ -8,8 +8,7 @@ Apollo
 Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a> object modeling for <a href="http://nodejs.org/" target="_blank">node.js</a>
 
 ##Notes
-*Apollo is in early develeopment stage. Code and documentation are incomplete!*
-
+*Apollo is in early development stage. Code and documentation are incomplete!*
 
 ##Installation
 
@@ -41,17 +40,17 @@ apollo.connect(function(err){
 `Apollo` constructor takes two arguments: `connection` and `options`. Let's see what they are in depth:
 
 - `connection` are a set of options for your connection and accept the following parameters:
-    
+
     - `hosts` is an array of string written in the form `host:port` or simply `host` assuming that the default port is 9042
     - `keyspace` is the keyspace you want to use. If it doesn't exist apollo will create it for you
     - `username` and `password` are used for authentication
     - Any other parameter is defined in [api](#api)
 
 - `options` are a set of generic options. Accept the following parameters:
-    
+
     - `replication_strategy` can be an object or a string representing <a href="http://www.datastax.com/documentation/cassandra/2.0/cassandra/architecture/architectureDataDistributeReplication_c.html" target="_blank">cassandra replication strategy</a>. Default is `{'class' : 'SimpleStrategy', 'replication_factor' : 1 }`
 
-Here is a complete example: 
+Here is a complete example:
 
 ```javascript
 var apollo = new Apollo(
@@ -73,13 +72,13 @@ Now that apollo is connected, create a `model` describing it through a `schema`
 
 ```javascript
 var PersonSchema = {
-    { 
+    {
         fields:{
             name    : "text",
             surname : "text",
             age     : "int"
-        }, 
-        key:["name"] 
+        },
+        key:["name"]
     }
 };
 ```
@@ -93,8 +92,8 @@ var Person = apollo.add_model('person',PersonSchema);
 From your model you can query cassandra or save your instances
 
 ```javascript
-/*Quesry your db*/
-Person.find({name: 'jhon'}, function(err, people){
+/*Query your db*/
+Person.find({name: 'john'}, function(err, people){
     if(err) throw err;
     console.log('Found ', people);
 });
@@ -129,7 +128,7 @@ PersonSchema = {
 
 What does the above code means?
 - `fields` are the columns of your table. For each column name the value can be the type or an object containing more specific informations. i.e.
-    + ` "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },` in this example id type is `uuid` and the default value is a cassandra function (so it will be executed from the database). 
+    + ` "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },` in this example id type is `uuid` and the default value is a cassandra function (so it will be executed from the database).
     + `"name"   : { "type": "varchar", "default": "no name provided"},` in this case name is a varchar and, if no value will be provided, it will have a default value of `no name provided`. The same goes for `surname`
     + `complete_name` the default values is calculated from others field. When apollo processes you model instances, the `complete_name` will be the result of the function you defined. In the function `this` is the current model instance.
     + `age` no default is provided and we could write it just as `"age": "int"`
@@ -156,8 +155,9 @@ When you instantiate a model, every field you defined in schema is automatically
 ```javascript
 john.age = 25;
 console.log(john.name); //John
-console.log(john.complete_name); // undefined. 
+console.log(john.complete_name); // undefined.
 ```
+
 __note__: `john.complete_name` is undefined in the newly created instance but will be populated when the instance is saved because it has a default value in schema definition
 
 John is a well defined person but he is not still persisted on cassandra. To persist it we need to save it. So simple:
@@ -195,13 +195,13 @@ PersonSchema = {
         "name"   : { "type": "varchar", "default": "no name provided"},
         "surname"   : { "type": "varchar", "default": "no surname provided"},
         ""
-        "complete_name" : { 
-            "type": "varchar", 
-            "virtual" : { 
+        "complete_name" : {
+            "type": "varchar",
+            "virtual" : {
                 get: function(){return this.name + ' ' +this.surname;},
                 set: function(value){
                     value = value.split(' ');
-                    this.name = value[0]; 
+                    this.name = value[0];
                     this.surname = value[1];
                 }
             }
@@ -227,7 +227,7 @@ var PersonSchema = {
 }
 ```
 
-your validator must return a boolean. If someone will try to assign `jhon.age = -15;` an error will be thrown.
+your validator must return a boolean. If someone will try to assign `john.age = -15;` an error will be thrown.
 You can also provide a message for validation error in this way
 
 ```javascript
@@ -285,8 +285,7 @@ Let's see a complex query
 
 ```javascript
 var query = {
-    name: 'John', // stays f
-    or name='john' 
+    name: 'John', // stays for name='john'
     age : { '$gt':10 }, // stays for age>10 You can also use $gte, $lt, $lte
     surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
     $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
