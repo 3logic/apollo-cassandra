@@ -7,15 +7,16 @@ Apollo
 
 Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a> object modeling for <a href="http://nodejs.org/" target="_blank">node.js</a>
 
-##Notes
+## Notes
+
 *Apollo is in early develeopment stage. Code and documentation are incomplete!*
 
 
-##Installation
+## Installation
 
 `npm install --save apollo-cassandra`
 
-##Usage
+## Usage
 
 Include Apollo and start creating your models
 
@@ -84,7 +85,7 @@ var PersonSchema = {
 };
 ```
 
-Now create a new Model based on your schema. The function `add_model` uses the table name and schema as parameters.
+Now create a new Model based on your schema. The function `add_model` uses the `table name` and `schema` as parameters.
 
 ```javascript
 var Person = apollo.add_model('person',PersonSchema);
@@ -128,7 +129,7 @@ PersonSchema = {
 ```
 
 What does the above code means?
-- `fields` are the columns of your table. For each column name the value can be the type or an object containing more specific informations. i.e.
+- `fields` are the columns of your table. For each column name the value can be a string representing the type or an object containing more specific informations. i.e.
     + ` "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },` in this example id type is `uuid` and the default value is a cassandra function (so it will be executed from the database). 
     + `"name"   : { "type": "varchar", "default": "no name provided"},` in this case name is a varchar and, if no value will be provided, it will have a default value of `no name provided`. The same goes for `surname`
     + `complete_name` the default values is calculated from others field. When apollo processes you model instances, the `complete_name` will be the result of the function you defined. In the function `this` is the current model instance.
@@ -284,8 +285,7 @@ Let's see a complex query
 
 ```javascript
 var query = {
-    name: 'John', // stays f
-    or name='john' 
+    name: 'John', // stays for name='john' 
     age : { '$gt':10 }, // stays for age>10 You can also use $gte, $lt, $lte
     surname : { '$in': ['Doe','Smith'] }, //This is an IN clause
     $orderby:{'$asc' :'age'} }, //Order results by age in ascending order. Also allowed $desc and complex order like $orderby:{'$asc' : ['k1','k2'] } }
