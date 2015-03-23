@@ -445,6 +445,7 @@ BaseModel._get_db_value_expression = function(fieldname, fieldvalue){
         case 'text':
         case 'varchar':
         case 'ascii':
+            return util.format("'%s'",fieldvalue.replace(/'/g, "''"));
         case 'inet':
             return util.format("'%s'",fieldvalue);
         case 'timestamp':
