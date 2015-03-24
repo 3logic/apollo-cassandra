@@ -770,7 +770,7 @@ BaseModel.prototype._get_default_value = function(fieldname){
         schema = properties.schema,
         fieldtype = schemer.get_field_type(schema, fieldname);
 
-    if (typeof schema.fields[fieldname] == 'object' && schema.fields[fieldname].default){
+    if (typeof schema.fields[fieldname] == 'object' && schema.fields[fieldname].default !== undefined){
         if(typeof schema.fields[fieldname].default == 'function'){
             return schema.fields[fieldname].default.call(this);
         }
