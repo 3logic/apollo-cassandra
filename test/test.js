@@ -127,7 +127,7 @@ describe('Apollo > ', function(){
             });
         });
 
-         it('add faulty model (wrong default type)', function(){
+        it('add faulty model (wrong default type)', function(){
             var schema = {
                 fields:{
                     v1:{
@@ -262,33 +262,65 @@ describe('Apollo > ', function(){
                 },'Invalid Value: "a" for Field: v3 (Type: int)');
             });
 
-            it.skip('Validator is not called on default if ignore_default is true', function(done){
-                var custom_validation_schema = {
-                    fields:{
-                        v1:"int",
-                        v2:"int",
-                        v3:{
-                            'type':"int",
-                            'rule': {
-                                validator: function(v){ return v > 10; },
-                                ignore_default: true
-                            },
-                            default: function(){return 5;}
-                        }
-                    },
-                    key:["v1"],
-                    indexes : ["v2"]
-                };
-                var TestModel = ap.add_model("testcustom", custom_validation_schema);
-                var ins;
-                assert.doesNotThrow(function(){
-                    ins = new TestModel({v1:50});
-                });
-                ins.save(function(err){
-                    assert.notOk(err);
-                    done();
-                });
-            });
+            // it.skip('newtest', function(done){
+            //     var validatePresenceOf = function(value) {
+            //         return value && value.length;
+            //     };
+
+            //     var authTypes = ['github', 'twitter', 'facebook', 'google'];
+
+            //     var user_schema = {
+            //         fields:{
+            //             name: 'text',
+            //             email: {
+            //                 type: 'text',
+            //                 rule: {
+            //                     validator: function(email){
+            //                         if (authTypes.indexOf(this.provider) !== -1) return true;
+            //                         return email.length>0;
+            //                     },
+            //                     message: 'Email cannot be blank'
+            //                 }
+            //             },
+            //             role: {
+            //                 type: 'text'
+            //             },
+            //             hashedpassword: {
+            //                 type: 'text',
+            //                 rule: {
+            //                     validator: function(hashedPassword) {
+            //                         if (authTypes.indexOf(this.provider) !== -1) return true;
+            //                         return validatePresenceOf(hashedPassword);
+            //                     },
+            //                     message: 'Invalid password'
+            //                 }
+            //             },
+            //             provider: {
+            //                 type: 'text',
+            //                 validator: function(provider) {
+            //                     return provider.length>0;
+            //                 }
+            //             },
+            //             salt: 'text'
+            //         },
+            //         key: ["name"]
+            //     };
+
+            //     var TestModel = ap.add_model("newtest", user_schema);
+            //     var ins;
+            //     assert.doesNotThrow(function(){
+            //         ins = new TestModel({name:'testname', email:'a@b.c', provider:'test'});
+            //     });
+            //     ins.save(function(err){
+            //         TestModel.find({name:'testname'}, function(err,list){
+            //             console.log(list.map(function(v){return v.name;}));
+
+            //             assert.notOk(err);
+            //             done();
+            //         });
+
+            //     });
+            // });
 
         });
 
@@ -353,7 +385,7 @@ describe('Apollo > ', function(){
             });
 
             it('drop is idempotent', function(done){
-                var TestModel = ap.add_model("remove_me", model_test1);
+                var TestModel = ap.add_model("remove_me", model_test1,{mismatch_behaviour:"drop"});
                 TestModel.init(function(err){
                     if(err) return done(err);
                     TestModel.drop_table(done);
@@ -540,6 +572,120 @@ describe('Apollo > ', function(){
 
             });
 
+            describe('Validation of default values > ',function(){
+
+                it('Validator is called on default if provided by value', function(done){
+
+                    var model_test_def = {
+                        fields:{
+                            v1:"int",
+                            v3:{
+                                type: "text",
+                                rule: function(value){return value.length == 8;},
+                                default: 'a'
+                            }
+                        },
+                        key:["v1"],
+                        indexes : ["v3"]
+                    };
+
+                    var TestModelDef = ap.add_model("test_ignore_default", model_test_def, {'mismatch_behaviour':'drop'});
+                    var ins;
+
+                    assert.doesNotThrow(function(){
+                        ins = new TestModelDef({v1:50});
+                    });
+                    ins.save(function(err){
+                        assert.ok(err);
+                        assert.match(err.toString(), /apollo\.model\.save\.invaliddefaultvalue/i);
+                        done();
+                    });
+                });
+
+                it('Validator is called on default if provided as a JS function', function(done){
+
+                    var model_test_def = {
+                        fields:{
+                            v1:"int",
+                            v3:{
+                                type: "text",
+                                rule: function(value){return value.length == 8;},
+                                default: function(){return 'a';}
+                            }
+                        },
+                        key:["v1"],
+                        indexes : ["v3"]
+                    };
+
+                    var TestModelDef = ap.add_model("test_ignore_default", model_test_def, {'mismatch_behaviour':'drop'});
+                    var ins;
+
+                    assert.doesNotThrow(function(){
+                        ins = new TestModelDef({v1:50});
+                    });
+                    ins.save(function(err){
+                        assert.ok(err);
+                        assert.match(err.toString(), /apollo\.model\.save\.invaliddefaultvalue/i);
+                        done();
+                    });
+                });
+
+                it('Validator is not called on default if provided as a DB function', function(done){
+
+                    var model_test_def = {
+                        fields:{
+                            v1:"int",
+                            v3:{
+                                type: "timeuuid",
+                                rule: {
+                                    validator:function(value){return value.length == 8;},
+                                    message : 'invalid value, length must be 8'
+                                },
+                                default:{"$db_function":"now()"}
+                            }
+                        },
+                        key:["v1"],
+                        indexes : ["v3"]
+                    };
+
+                    var TestModelDef = ap.add_model("test_ignore_default", model_test_def, {'mismatch_behaviour':'drop'});
+                    var ins;
+
+                    assert.doesNotThrow(function(){
+                        ins = new TestModelDef({v1:50});
+                    });
+                    ins.save(function(err){
+                        assert.notOk(err);
+                        done();
+                    });
+                });
+
+                it('Validator is not called on default if ignore_default is true', function(done){
+                    var custom_validation_schema = {
+                        fields:{
+                            v1:"int",
+                            v3:{
+                                'type': "int",
+                                'rule': {
+                                    validator: function(v){ return v > 10; },
+                                    ignore_default: true
+                                },
+                                'default': function(){ return 5; }
+                            }
+                        },
+                        key:["v1"]
+                    };
+                    var TestModel = ap.add_model("test_ignore_default", custom_validation_schema, {'mismatch_behaviour':'drop'});
+                    var ins;
+                    assert.doesNotThrow(function(){
+                        ins = new TestModel({v1:50});
+                    });
+                    ins.save(function(err){
+                        assert.notOk(err);
+                        done();
+                    });
+                });
+            });
         });
 
         describe('Find > ',function(){
@@ -839,6 +985,24 @@ describe('Apollo > ', function(){
             TestModel = apollo.add_model("test_find_timeuuid", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
             var tuuid = apollo.timeuuid();
             var t = new TestModel({v1:tuuid, v2: "hi" });
+            t.save(function(err){
+                if(err) return done(err);
+                TestModel.find({v1:tuuid},function(err,results){
+                    assert.notOk(err);
+                    assert.lengthOf(results, 1);
+                    done();
+                });
+            });
+        });
+
+        it('correctly escape texts', function(done){
+            var model_find_schema_uuid = {
+                fields:{v1:"timeuuid",v2:"text"},
+                key:["v1"]
+            };
+            TestModel = apollo.add_model("test_find_text", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
+            var tuuid = apollo.timeuuid();
+            var t = new TestModel({v1:tuuid, v2: "Peter o'Toole" });
             t.save(function(err){
                 if(err) return done(err);
                 TestModel.find({v1:tuuid},function(err,results){

@@ -76,7 +76,7 @@ TYPE_MAP.generic_type_validator = function(validator){
            return util.format('Invalid Value: "%s" for Field: %s (Type: %s)',value,prop_name,fieldtype);
         },
         "type": "type_validator"
-    }
+    };
 };
 
 TYPE_MAP.find_type_by_dbvalidator = function(val){

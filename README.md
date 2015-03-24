@@ -73,7 +73,7 @@ var apollo = new Apollo(
 Now that apollo is connected, create a `model` describing it through a `schema`
 
 ```javascript
-var PersonSchema = {
+var personSchema = {
     { 
         fields:{
             name    : "text",
@@ -88,7 +88,7 @@ var PersonSchema = {
 Now create a new Model based on your schema. The function `add_model` uses the `table name` and `schema` as parameters.
 
 ```javascript
-var Person = apollo.add_model('person',PersonSchema);
+var Person = apollo.add_model('person',personSchema);
 ```
 
 From your model you can query cassandra or save your instances
@@ -114,7 +114,7 @@ alex.save(function(err){
 A schema can be a complex object. Take a look at this example
 
 ```javascript
-PersonSchema = {
+personSchema = {
     "fields": {
         "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },
         "name"   : { "type": "varchar", "default": "no name provided"},
@@ -131,10 +131,10 @@ PersonSchema = {
 What does the above code means?
 - `fields` are the columns of your table. For each column name the value can be a string representing the type or an object containing more specific informations. i.e.
     + ` "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },` in this example id type is `uuid` and the default value is a cassandra function (so it will be executed from the database). 
-    + `"name"   : { "type": "varchar", "default": "no name provided"},` in this case name is a varchar and, if no value will be provided, it will have a default value of `no name provided`. The same goes for `surname`
-    + `complete_name` the default values is calculated from others field. When apollo processes you model instances, the `complete_name` will be the result of the function you defined. In the function `this` is the current model instance.
-    + `age` no default is provided and we could write it just as `"age": "int"`
-    + `created`, like uuid(), will be evalueted from cassandra using the `now()` function
+    + `"name"   : { "type": "varchar", "default": "no name provided"},` in this case name is a varchar and, if no value will be provided, it will have a default value of `no name provided`. The same goes for `surname`.
+    + `complete_name` the default values is calculated from others field. When apollo processes you model instances, the `complete_name` will be the result of the function you defined. In the function `this` is bound to the current model instance.
+    + `age` no default is provided and we could write it just as `"age": "int"`.
+    + `created`, like uuid(), will be evaluated from cassandra using the `now()` function.
 - `key`: here is where you define the key of your table. As you can imagine, the first value of the array is the `partition key` and the others are the `clustering keys`. The `partition key` can be an array defining a `compound key`. Read more about keys on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/use_compound_keys_t.html" target="_blank">documentation</a>
 - `indexes` are the index of your table. It's always an array of field names. You can read more on the <a href="http://www.datastax.com/documentation/cql/3.1/cql/ddl/ddl_primary_index_c.html" target="_blank">documentation</a>
 
@@ -144,7 +144,7 @@ A model is an object representing your cassandra `table`. Your application inter
 
 Let's create our first model
 ```javascript
-var Person = apollo.add_model('person',PersonSchema);
+var Person = apollo.add_model('person',personSchema);
 ```
 
 now instantiate a person
@@ -190,7 +190,7 @@ ok, goodbye John.
 Your model could have some fields which are not saved on database. You can define them as `virtual`
 
 ```javascript
-PersonSchema = {
+personSchema = {
     "fields": {
         "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },
         "name"   : { "type": "varchar", "default": "no name provided"},
@@ -215,10 +215,10 @@ A virtual field is simply defined adding a `virtual` key in field description. V
 
 ## Validators
 
-Every time you set a property for an instance of your model, internal type validator check that the value is valid. If not an error is thrown. But how to add a custom validator? You need to provide your custom validator in the schema definition. For example, if you want to check age to be a number greater than zero:
+Every time you set a property for an instance of your model, an internal type validator checks that the value is valid. If not an error is thrown. But how to add a custom validator? You need to provide your custom validator in the schema definition. For example, if you want to check age to be a number greater than zero:
 
 ```javascript
-var PersonSchema = {
+var personSchema = {
     //... other properties hidden for clarity
     age: {
         type : "int",
@@ -227,11 +227,11 @@ var PersonSchema = {
 }
 ```
 
-your validator must return a boolean. If someone will try to assign `jhon.age = -15;` an error will be thrown.
+your validator must return a boolean. If someone will try to assign `john.age = -15;` an error will be thrown.
 You can also provide a message for validation error in this way
 
 ```javascript
-var PersonSchema = {
+var personSchema = {
     //... other properties hidden for clarity
     age: {
         type : "int",
@@ -243,10 +243,10 @@ var PersonSchema = {
 }
 ```
 
-Than the error will have your message. Message can also be a function; in that case it must return a string:
+then the error will have your message. Message can also be a function; in that case it must return a string:
 
 ```javascript
-var PersonSchema = {
+var personSchema = {
     //... other properties hidden for clarity
     age: {
         type : "int",
@@ -260,9 +260,26 @@ var PersonSchema = {
 
 The error message will be `Age must be greater than 0. You provided -15`
 
+Note that default values _are_ validated if defined either by value or as a javascript function. Defaults defined as DB functions, on the other hand, are never validated in the model as they are retrieved _after_ the corresponding data has entered the DB.
+If you need to exclude defaults from being checked you can pass an extra flag:
+
+```javascript
+var blogUserSchema = {
+    //... other properties hidden for clarity
+    email: {
+        type : "text",
+        default : "<enter your email here>",
+        rule : {
+            validator : function(value){ /* code to check that value matches an email pattern*/ },
+            ignore_default: true
+        }
+    }
+}
+```
+
 ## Querying your data
 
-Ok, now you have a bunch of people on db. How to retrieve them?
+Ok, now you have a bunch of people on db. How do I retrieve them?
 
 ### Find
 
@@ -273,7 +290,7 @@ Person.find({name: 'John'}, function(err, people){
 });
 ```
 
-In the above example it will perform the query `SELECT * FROM person WHERE name='john'` but `find()` allows you to perform even more complex queries on cassandra.  You should be aware of how to query cassandra. Every error will be reported to you in the `err` argument, while in `people` you'll find instances of `Person`. If you don't want apollo to cast results in instances of your model you can use the `raw` option as in the following example
+In the above example it will perform the query `SELECT * FROM person WHERE name='john'` but `find()` allows you to perform even more complex queries on cassandra.  You should be aware of how to query cassandra. Every error will be reported to you in the `err` argument, while in `people` you'll find instances of `Person`. If you don't want apollo to cast results to instances of your model you can use the `raw` option as in the following example:
 
 ```javascript
 Person.find({name: 'John'}, { raw: true }, function(err, people){
@@ -294,12 +311,12 @@ var query = {
 }
 ```
 
-Note that all query clauses must be Cassandra compliant. You cannot, for example, use $in operator for a key which is not the partition key. Querying in Cassandra is very basic but could be confusing at first. Take a look to this <a href="http://mechanics.flite.com/blog/2013/11/05/breaking-down-the-cql-where-clause/" target="_blank">post</a> and, obvsiouly, to the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/about_cql_c.html" target="_blank">documentation</a>
+Note that all query clauses must be Cassandra compliant. You cannot, for example, use $in operator for a key which is not the partition key. Querying in Cassandra is very basic but could be confusing at first. Take a look at this <a href="http://mechanics.flite.com/blog/2013/11/05/breaking-down-the-cql-where-clause/" target="_blank">post</a> and, obvsiouly, at the <a href="http://www.datastax.com/documentation/cql/3.1/cql/cql_using/about_cql_c.html" target="_blank">documentation</a>
 
 
-## Api
+## API
 
-Complete api definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
+Complete API definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
 Anyway you can generate documentation cloning this project and launching `grunt doc`
 
 ## Test

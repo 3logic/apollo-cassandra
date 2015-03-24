@@ -47,7 +47,7 @@ var BaseModel = function(instance_values){
     instance_values = instance_values || {};
     var _field_values = {};
     var fields = this.constructor._properties.schema.fields;
-
+    var self = this;
     var default_setter = function(prop_name, new_value){
             this[prop_name] = new_value;
         },
@@ -56,14 +56,17 @@ var BaseModel = function(instance_values){
         },
         validation_wrapper = function(setter, validation_func, prop_name, fieldtype){
             return function(value){
-                var validation_result = validation_func(value);
-                if( validation_result !== true )
-                    throw build_error('model.set.invalidvalue', validation_result(value, prop_name, fieldtype) );
+                if(!self._skip_validation){
+                    var validation_result = validation_func(value);
+                    if( validation_result !== true )
+                        throw build_error('model.set.invalidvalue', validation_result(value, prop_name, fieldtype) );
+                }
                 setter(value);
             };
         },
         generic_validator_message_func = function(value, prop_name, fieldtype){return util.format('Invalid Value: "%s" for Field: %s (Type: %s)', value, prop_name, fieldtype); };
     this._validators = {};
+    this._skip_validation = false;
     var validators;
 
     for(var fields_keys = Object.keys(fields), i = 0, len = fields_keys.length; i < len; i++){
@@ -803,9 +806,11 @@ BaseModel.prototype._update_self = function(callback){
             callback('Error self-updating model instance: not a single record in DB',result);
         }
         var f;
+        this._skip_validation = true;
         for (f in properties.schema.fields){
             this[f] = result[0][f];
         }
+        this._skip_validation = false;
         callback();
     }.bind(this));
 };
@@ -853,9 +858,7 @@ BaseModel.prototype.save = function(options, callback){
 
         // check field value
         var fieldtype = schemer.get_field_type(schema,f),
-            fieldvalue = this[f],
-            fieldvalidator = TYPE_MAP[fieldtype].validator;
-
+            fieldvalue = this[f];
 
         if (fieldvalue === undefined){
             fieldvalue = this._get_default_value(f);
@@ -864,9 +867,10 @@ BaseModel.prototype.save = function(options, callback){
                     return callback(build_error('model.save.unsetkey',f));
                 else
                     continue;
-            }
-            if( this.validate( f, fieldvalue ) !== true ){
-                return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
+            } else if(!schema.fields[f].rule || !schema.fields[f].rule.ignore_default){ //did set a default value, ignore default is not set
+                if( this.validate( f, fieldvalue ) !== true ){
+                    return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
+                }
             }
         }
 
