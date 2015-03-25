@@ -962,7 +962,7 @@ describe('Apollo > ', function(){
             });
         });
 
-        it.only('correctly escape texts', function(done){
+        it('correctly escape texts', function(done){
             var model_find_schema = {
                 fields:{v1:"text"},
                 key:["v1"]
