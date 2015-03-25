@@ -325,8 +325,8 @@ Note that all query clauses must be Cassandra compliant. You cannot, for example
 
 ## API
 
-Complete API definition is available on <a href="http://apollo.3logic.it/Apollo.html" target="_blank">3logic website</a>.
-Anyway you can generate documentation cloning this project and launching `grunt doc`
+Complete API definition is available on the <a href="http://apollo.3logic.it" target="_blank">3logic website</a>.
+Anyway, you can generate the documentation by cloning this project and launching `grunt doc`
 
 ## Test
 
