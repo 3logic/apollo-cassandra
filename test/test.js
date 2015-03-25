@@ -39,7 +39,7 @@ describe('Apollo > ', function(){
                 assert.isFunction(apollo.connect, 'connect is a function of apollo');
             });
 
-            it('connect to cassandra', function(done){
+            it('connects to cassandra', function(done){
                 apollo.connect(done);
                 apollo.close();
             });
@@ -47,7 +47,7 @@ describe('Apollo > ', function(){
     });
 
 
-    describe('On apollo instances > ',function(){
+    describe('On Apollo instances > ',function(){
 
         var ap;
 
@@ -150,19 +150,19 @@ describe('Apollo > ', function(){
             assert.property(ins,'save');
         });
 
-        it('Init works even if not already connected', function(done){
+        it('init works even if not already connected', function(done){
             var ap2 =  new Apollo(connection);
             var Model = ap2.add_model("test1", model_test1);
             Model.find( {'v1' : 1}, done);
         });
 
-        it('Find works if not already connected', function(done){
+        it('find works if not already connected', function(done){
             var ap2 =  new Apollo(connection);
             var FindModel = ap2.add_model("test1", model_test1);
             FindModel.find( {'v1' : 1}, done);
         });
 
-        it('Virtual field getter', function(){
+        it('virtual field getter', function(){
             var TestModel = ap.add_model("testvirtual1", model_testvirtual1);
             var ins = new TestModel({'name': 'foo', 'surname':'baz', complete_name:'bar'});
 
@@ -171,7 +171,7 @@ describe('Apollo > ', function(){
             assert.propertyVal(ins,'complete_name', 'foo baz');
         });
 
-        it('Virtual field setter', function(){
+        it('virtual field setter', function(){
             var TestModel = ap.add_model("testvirtual2", model_testvirtual2);
             var ins = new TestModel({'name': 'a', 'surname':'b', 'complete_name':'foo bar baz'});
 
@@ -182,7 +182,7 @@ describe('Apollo > ', function(){
 
         describe('Validation >', function(){
 
-            it('Field validation', function(){
+            it('field validation', function(){
                 var TestModel = ap.add_model("test1", model_test1);
 
                 assert.throws(function(){
@@ -191,7 +191,7 @@ describe('Apollo > ', function(){
             });
 
 
-            it('Field custom validator', function(){
+            it('field custom validator', function(){
                 var custom_validation_schema = {
                     fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v > 10; } } },
                     key:["v1"],
@@ -203,7 +203,7 @@ describe('Apollo > ', function(){
                 },'Invalid Value: "5" for Field: v3 (Type: int)');
             });
 
-            it('Field custom validator with custom message', function(){
+            it('field custom validator with custom message', function(){
                 var custom_validation_schema = {
                     fields:{
                         v1:"int",
@@ -225,7 +225,7 @@ describe('Apollo > ', function(){
                 },'V3 must be greater than 10');
             });
 
-            it('Field custom validator with custom generated message', function(){
+            it('field custom validator with custom generated message', function(){
                 var custom_validation_schema = {
                     fields:{
                         v1:"int",
@@ -250,7 +250,7 @@ describe('Apollo > ', function(){
                 },'v3 must be greater than 10, ' + val + ' is not');
             });
 
-            it('Default validator is called after custom validator', function(){
+            it('default validator is called after custom validator', function(){
                 var custom_validation_schema = {
                     fields:{v1:"int",v2:"int",v3:{'type':"int",'rule': function(v){ return v != 10; } } },
                     key:["v1"],
@@ -261,66 +261,6 @@ describe('Apollo > ', function(){
                     var ins = new TestModel({'v3' : 'a'});
                 },'Invalid Value: "a" for Field: v3 (Type: int)');
             });
-
-            // it.skip('newtest', function(done){
-            //     var validatePresenceOf = function(value) {
-            //         return value && value.length;
-            //     };
-
-            //     var authTypes = ['github', 'twitter', 'facebook', 'google'];
-
-            //     var user_schema = {
-            //         fields:{
-            //             name: 'text',
-            //             email: {
-            //                 type: 'text',
-            //                 rule: {
-            //                     validator: function(email){
-            //                         if (authTypes.indexOf(this.provider) !== -1) return true;
-            //                         return email.length>0;
-            //                     },
-            //                     message: 'Email cannot be blank'
-            //                 }
-            //             },
-            //             role: {
-            //                 type: 'text'
-            //             },
-            //             hashedpassword: {
-            //                 type: 'text',
-            //                 rule: {
-            //                     validator: function(hashedPassword) {
-            //                         if (authTypes.indexOf(this.provider) !== -1) return true;
-            //                         return validatePresenceOf(hashedPassword);
-            //                     },
-            //                     message: 'Invalid password'
-            //                 }
-            //             },
-            //             provider: {
-            //                 type: 'text',
-            //                 validator: function(provider) {
-            //                     return provider.length>0;
-            //                 }
-            //             },
-            //             salt: 'text'
-            //         },
-            //         key: ["name"]
-            //     };
-
-            //     var TestModel = ap.add_model("newtest", user_schema);
-            //     var ins;
-            //     assert.doesNotThrow(function(){
-            //         ins = new TestModel({name:'testname', email:'a@b.c', provider:'test'});
-            //     });
-            //     ins.save(function(err){
-            //         TestModel.find({name:'testname'}, function(err,list){
-            //             console.log(list.map(function(v){return v.name;}));
-
-            //             assert.notOk(err);
-            //             done();
-            //         });
-
-            //     });
-            // });
 
         });
 
@@ -368,7 +308,7 @@ describe('Apollo > ', function(){
 
             });
 
-            it('mismatch_behaviour invalid', function(){
+            it('invalid mismatch_behaviour', function(){
                 assert.throw(
                     function(){
                         var TestModel = ap.add_model("test1", conflict_model,{mismatch_behaviour:"foo"});
@@ -384,16 +324,43 @@ describe('Apollo > ', function(){
                 });
             });
 
-            it('drop is idempotent', function(done){
-                var TestModel = ap.add_model("remove_me", model_test1,{mismatch_behaviour:"drop"});
-                TestModel.init(function(err){
-                    if(err) return done(err);
-                    TestModel.drop_table(done);
+            it('validator is ignored in schema comparison', function(done){
+
+                var user_schema = {
+                    fields:{
+                        name: 'text',
+                        email: {
+                            type: 'text',
+                            rule: {
+                                validator: function(email){ return email.length>0; },
+                                message: 'Email cannot be blank'
+                            }
+                        }
+                    },
+                    key: ["name"]
+                };
+
+                var TestModel = ap.add_model("newtest", user_schema);
+
+                var ins, ins2;
+                assert.doesNotThrow(function(){
+                    ins = new TestModel({name:'testname', email:'a@b.c'});
                 });
+
+                ins.save(function(err){
+                    TestModel.find({name:'testname'}, function(err,list){
+                        //console.log(list.map(function(v){return v.name;}));
+                        assert.doesNotThrow(function(){
+                            ins2 = new TestModel({name:'testname2', email:'a@b.c'});
+                        });
+                        assert.notOk(err);
+                        done();
+                    });
+                });
+
             });
 
         });
-
 
 
         describe('Save > ',function(){
@@ -574,7 +541,7 @@ describe('Apollo > ', function(){
 
             describe('Validation of default values > ',function(){
 
-                it('Validator is called on default if provided by value', function(done){
+                it('validator is called on default if provided by value', function(done){
 
                     var model_test_def = {
                         fields:{
@@ -602,7 +569,7 @@ describe('Apollo > ', function(){
                     });
                 });
 
-                it('Validator is called on default if provided as a JS function', function(done){
+                it('validator is called on default if provided as a JS function', function(done){
 
                     var model_test_def = {
                         fields:{
@@ -630,7 +597,7 @@ describe('Apollo > ', function(){
                     });
                 });
 
-                it('Validator is not called on default if provided as a DB function', function(done){
+                it('validator is not called on default if provided as a DB function', function(done){
 
                     var model_test_def = {
                         fields:{
@@ -660,7 +627,7 @@ describe('Apollo > ', function(){
                     });
                 });
 
-                it('Validator is not called on default if ignore_default is true', function(done){
+                it('validator is not called on default if ignore_default is true', function(done){
                     var custom_validation_schema = {
                         fields:{
                             v1:"int",
@@ -995,17 +962,16 @@ describe('Apollo > ', function(){
             });
         });
 
-        it('correctly escape texts', function(done){
-            var model_find_schema_uuid = {
-                fields:{v1:"timeuuid",v2:"text"},
+        it.only('correctly escape texts', function(done){
+            var model_find_schema = {
+                fields:{v1:"text"},
                 key:["v1"]
             };
-            TestModel = apollo.add_model("test_find_text", model_find_schema_uuid, {'mismatch_behaviour':'drop'});
-            var tuuid = apollo.timeuuid();
-            var t = new TestModel({v1:tuuid, v2: "Peter o'Toole" });
+            TestModel = apollo.add_model("test_find_text", model_find_schema, {'mismatch_behaviour':'drop'});
+            var t = new TestModel({v1: "Peter o'Toole" });
             t.save(function(err){
                 if(err) return done(err);
-                TestModel.find({v1:tuuid},function(err,results){
+                TestModel.find({v1:"Peter o'Toole"},function(err,results){
                     assert.notOk(err);
                     assert.lengthOf(results, 1);
                     done();

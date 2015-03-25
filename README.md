@@ -157,11 +157,11 @@ When you instantiate a model, every field you defined in schema is automatically
 ```javascript
 john.age = 25;
 console.log(john.name); //John
-console.log(john.complete_name); // undefined. 
+console.log(john.complete_name); // undefined.
 ```
 __note__: `john.complete_name` is undefined in the newly created instance but will be populated when the instance is saved because it has a default value in schema definition
 
-John is a well defined person but he is not still persisted on cassandra. To persist it we need to save it. So simple:
+John is a well defined person but he is not still persisted on cassandra. To persist it we need to save it. So simply:
 
 ```javascript
 john.save(function(err){
@@ -185,6 +185,15 @@ john.delete(function(err){
 
 ok, goodbye John.
 
+### A few handy tools for your model
+
+Apollo instances provide some utility methods. To generate uuids e.g. in field defaults:
+
+*   `apollo.uuid()`  
+    returns a type 3 (random) uuid, suitable for Cassandra `uuid` fields, as a string
+*   `apollo.timeuuid()`  
+    returns a type 1 (time-based) uuid, suitable for Cassandra `timeuuid` fields, as a string
+
 ## Virtual fields
 
 Your model could have some fields which are not saved on database. You can define them as `virtual`
@@ -195,13 +204,13 @@ personSchema = {
         "id"     : { "type": "uuid", "default": {"$db_function": "uuid()"} },
         "name"   : { "type": "varchar", "default": "no name provided"},
         "surname"   : { "type": "varchar", "default": "no surname provided"},
-        "complete_name" : { 
-            "type": "varchar", 
-            "virtual" : { 
+        "complete_name" : {
+            "type": "varchar",
+            "virtual" : {
                 get: function(){return this.name + ' ' +this.surname;},
                 set: function(value){
                     value = value.split(' ');
-                    this.name = value[0]; 
+                    this.name = value[0];
                     this.surname = value[1];
                 }
             }
