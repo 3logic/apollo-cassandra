@@ -12,10 +12,11 @@ var DEFAULT_REPLICATION_FACTOR = 1;
 var noop = function(){};
 
 /**
- * Utilità per cassandra
- * @param {Apollo~Connection} connection configurazione di Apollo
- * @param {Apollo~CassandraOptions} options - Cassandra options
+ * Build a new Apollo instance for the specified Cassandra database
+ * @param {Apollo~Connection} connection - Connection configurations
+ * @param {Apollo~CassandraOptions} options - Cassandra specific options
  * @class
+ * @classdesc Cassandra ORM
  */
 var Apollo = function(connection, options){
     if(!connection) throw "Data connection configuration undefined";
@@ -202,7 +203,7 @@ Apollo.prototype = {
      */
     add_model : function(model_name, model_schema, options) {
         if(!model_name || typeof(model_name) != "string")
-            throw("Si deve specificare un nome per il modello");
+            throw("Model name missing");
 
         options = options || {};
         options.mismatch_behaviour = options.mismatch_behaviour || 'fail';
@@ -237,8 +238,8 @@ Apollo.prototype = {
 
 
     /**
-     * Chiusura della connessione
-     * @param  {Function} callback callback
+     * Close connection
+     * @param  {Apollo~GenericCallback} callback - Called when all the connection are closed with an error if any.
      */
     close : function(callback){
         callback = callback || noop;

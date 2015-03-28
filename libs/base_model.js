@@ -295,7 +295,6 @@ BaseModel._create_table = function(callback){
  * @protected
  */
 BaseModel._create_table_query = function(table_name,schema){
-    //creazione tabella
     var rows = [],
         field_type;
     for(var k in schema.fields){
