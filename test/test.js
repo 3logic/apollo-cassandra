@@ -846,26 +846,40 @@ describe('Apollo > ', function(){
             });
 
             it('successful static delete', function(done){
-                TestModel.delete({'v1': 500}, function(err){
+                TestModel.find({'v1': 500}, {raw:true}, function(err, results){
                     assert.notOk(err);
+                    assert.lengthOf(results, 1);
 
-                    TestModel.find({'v1': 500}, function(err, results){
+                    TestModel.delete({'v1': 500}, function(err){
                         assert.notOk(err);
-                        assert.lengthOf(results, 0);
-                        done();
+
+                        TestModel.find({'v1': 500}, {raw:true}, function(err, results){
+                            assert.notOk(err);
+
+                            assert.lengthOf(results, 0);
+                            done();
+                        });
                     });
+
                 });
             });
 
             it('successful instance delete', function(done){
-                var ins = new TestModel({'v1': 500});
-                ins.delete(function(err){
+                TestModel.find({'v1': 500}, function(err, results){
                     assert.notOk(err);
-                    TestModel.find({'v1': 500}, function(err, results){
+                    assert.lengthOf(results, 1);
+
+                    var ins = results[0];
+                    ins.delete(function(err){
                         assert.notOk(err);
-                        assert.lengthOf(results, 0);
-                        done();
+
+                        TestModel.find({'v1': 500}, {raw:true}, function(err, results){
+                            assert.notOk(err);
+                            assert.lengthOf(results, 0);
+                            done();
+                        });
                     });
+
                 });
             });
 

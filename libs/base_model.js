@@ -850,6 +850,8 @@ BaseModel.prototype.save = function(options, callback){
             consistency : CONSISTENCY_SAVE
         };
 
+    var must_update_self = false;
+
     options = lodash.defaults(options, defaults);
 
     for(var f in schema.fields){
@@ -860,16 +862,21 @@ BaseModel.prototype.save = function(options, callback){
         var fieldtype = schemer.get_field_type(schema,f),
             fieldvalue = this[f];
 
-        if (fieldvalue === undefined){
+        if (fieldvalue === undefined || schema.fields[f]['auto']){
             fieldvalue = this._get_default_value(f);
+
             if(fieldvalue === undefined){
                 if(schema.key.indexOf(f) >= 0 || schema.key[0].indexOf(f) >= 0)
                     return callback(build_error('model.save.unsetkey',f));
                 else
                     continue;
-            } else if(!schema.fields[f].rule || !schema.fields[f].rule.ignore_default){ //did set a default value, ignore default is not set
-                if( this.validate( f, fieldvalue ) !== true ){
-                    return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
+            } else {
+                if(fieldvalue['$db_function'])
+                    must_update_self = true;
+                if(!schema.fields[f].rule || !schema.fields[f].rule.ignore_default){ //did retrieve a default value, ignore default is not set
+                    if( this.validate( f, fieldvalue ) !== true ){
+                        return callback(build_error('model.save.invaliddefaultvalue',fieldvalue,f,fieldtype));
+                    }
                 }
             }
         }
@@ -887,6 +894,14 @@ BaseModel.prototype.save = function(options, callback){
         catch(e){
             return callback(build_error('model.save.invalidvalue',fieldvalue,f,fieldtype));
         }
+
+        if(!fieldvalue || !fieldvalue['$db_function']){
+            this._skip_validation = true;
+            if(this[f]!==fieldvalue)
+                this[f] = fieldvalue;
+            this._skip_validation = false;
+        }
+
     }
 
     var query = util.format(
@@ -897,11 +912,15 @@ BaseModel.prototype.save = function(options, callback){
     );
     this.constructor._execute_table_query(query, null,options.consistency, function(err, result){
         if(err) return callback(err);
-        this._update_self(function(err){
-            if(err)
-                console.warn(err);
+        if(must_update_self){
+            this._update_self(function(err){
+                if(err)
+                    console.warn(err);
+                callback(null, result);
+            });
+        }
+        else
             callback(null, result);
-        });
     }.bind(this));
 };
 
