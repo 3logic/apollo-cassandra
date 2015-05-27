@@ -30,6 +30,12 @@ var Apollo = function(connection, options){
     //Compatibility with old parameters name
     if(this._connection.hosts && !this._connection.contactPoints)
         this._connection.contactPoints = this._connection.hosts;
+    //handle authentication
+    if(lodash.isObject(this._connection.authProvider) || lodash.isString(this._connection.username)){
+        this._connection.authProvider = this._connection.authProvider || new cql.auth.PlainTextAuthProvider(this._connection.username, this._connection.password || '');
+        delete this._connection.username;
+        delete this._connection.password;
+    }
     this._client = null;
 };
 
