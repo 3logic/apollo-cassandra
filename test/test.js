@@ -112,6 +112,30 @@ describe('Apollo > ', function(){
                 },
                 key:[["name", "surname"]]
             };
+        
+        var model_test_static = {
+                fields:{
+                    username: "text",
+                    id: {
+                        "type":"uuid",
+                        "default": {"$db_function": "uuid()"}
+                    },
+                    name:{
+                        "type":"text",
+                        "static":true
+                    },
+                    surname:{
+                        "type":"text",
+                        "static":true
+                    },
+                    favorites:{
+                        "type":"text",
+                        "static":false
+                    },
+                    likes:"text",
+                },
+                key:[["username"],"id"]
+            };
 
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
@@ -178,6 +202,23 @@ describe('Apollo > ', function(){
             assert.propertyVal(ins,'name','foo');
             assert.propertyVal(ins,'surname', 'baz');
             assert.notOk(ins.complete_name);
+        });
+
+        it('adds model with static fields', function(done){
+            var TestModel = ap.add_model("teststaticfields", model_test_static);
+            TestModel._create_table(function (err) {
+                TestModel._get_db_table_schema(function(err, schema){
+                    assert.notOk(err);
+                    assert.property(schema,'static');
+                    assert.isArray(schema['static']);
+                    assert.equal(schema['static'][0], 'name');
+                    assert.equal(schema['static'][1], 'surname');
+                    assert.isFunction(TestModel);
+                    assert.property(TestModel,'find');
+                    assert.isFalse(TestModel.is_table_ready());
+                    done();
+                });
+            })
         });
 
         describe('Validation >', function(){
