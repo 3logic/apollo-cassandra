@@ -752,7 +752,7 @@ describe('Apollo > ', function(){
             });
 
             it('basic find', function(done){
-                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},function(err, results){
+                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 1);
                     var result = results[0];
                     assert.instanceOf(result, TestModel);
@@ -766,7 +766,7 @@ describe('Apollo > ', function(){
             });
 
             it('basic find with raw results', function(done){
-                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ raw: true },function(err, results){
+                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ raw: true, allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 1);
                     var result = results[0];
                     assert.notInstanceOf(result, TestModel);
@@ -794,7 +794,7 @@ describe('Apollo > ', function(){
             });
 
             it('using >= ($gte) in clustering key', function(done){
-                TestModel.find({'v3':{'$gte':1 } },function(err, results){
+                TestModel.find({'v3':{'$gte':1 } }, { allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 3);
                     done();
                 });

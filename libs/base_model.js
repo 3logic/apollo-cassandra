@@ -577,11 +577,12 @@ BaseModel._create_find_query = function(query_ob, options){
     }
     var where = this._create_where_clause(query_ob);
     var query = util.format(
-        'SELECT * FROM "%s" %s %s %s ALLOW FILTERING;',
+        'SELECT * FROM "%s" %s %s %s %s;',
         this._properties.table_name,
         where,
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
-        limit ? 'LIMIT '+limit : ' '
+        limit ? 'LIMIT '+limit : ' ',
+        options.allowfiltering ? 'ALLOW FILTERING' : ' '
     );
     return query;
 };
@@ -683,7 +684,8 @@ BaseModel.find = function(query_ob, options, callback){
 
     var defaults = {
         raw : false,
-        consistency : CONSISTENCY_FIND
+        consistency : CONSISTENCY_FIND,
+        allowfiltering : false
     };
 
     options = lodash.defaults(options, defaults);
