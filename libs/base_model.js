@@ -576,8 +576,17 @@ BaseModel._create_find_query = function(query_ob, options){
         }
     }
     var where = this._create_where_clause(query_ob);
+    var distinct = '*';
+    if( options.distinct != null){
+        if( !options.distinct instanceof Array ){
+            throw(build_error('model.find.invaliddistinct'));
+        }
+        distinct = 'DISTINCT '+options.distinct.join(', ');
+    }
+    
     var query = util.format(
-        'SELECT * FROM "%s" %s %s %s %s;',
+        'SELECT %s FROM "%s" %s %s %s %s;',
+        distinct,
         this._properties.table_name,
         where,
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
@@ -685,7 +694,8 @@ BaseModel.find = function(query_ob, options, callback){
     var defaults = {
         raw : false,
         consistency : CONSISTENCY_FIND,
-        allowfiltering : false
+        allowfiltering : false,
+        distinct : null
     };
 
     options = lodash.defaults(options, defaults);

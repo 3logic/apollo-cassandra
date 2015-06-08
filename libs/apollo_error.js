@@ -50,6 +50,9 @@ var AERROR_TYPES = {
 	'model.find.limittype': {
 		msg: 'Invalid limit value'
 	},
+	'model.find.invaliddistinct': {
+		msg: 'Invalid distinct columns. Must be Array'
+	},
 	'model.find.dberror': {
 		msg: 'Error during find query on DB -> %s'
 	},
