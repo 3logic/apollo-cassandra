@@ -116,10 +116,6 @@ describe('Apollo > ', function(){
         var model_test_static = {
                 fields:{
                     username: "text",
-                    id: {
-                        "type":"uuid",
-                        "default": {"$db_function": "uuid()"}
-                    },
                     name:{
                         "type":"text",
                         "static":true
@@ -134,7 +130,7 @@ describe('Apollo > ', function(){
                     },
                     likes:"text",
                 },
-                key:[["username"],"id"]
+                key:[["username"],"favorites","likes"]
             };
 
         it('add model', function(){
@@ -870,6 +866,88 @@ describe('Apollo > ', function(){
                 TestModel.find({'v1':11, 'v2':{'$in':['twelve','twentytwo']}, '$orderby':{'$asc': ['v6','v3']} },function(err, results){
                     assert.ok(err);
                     done();
+                });
+            });
+
+            describe('Distinct > ', function() {
+                
+                var TestFindDistinctModel;
+
+                beforeEach(function(done) {
+                    this.timeout(15000);
+
+                    TestFindDistinctModel = ap.add_model("testfinddistinct", model_test_static, {'mismatch_behaviour':'drop'});
+                    
+                    TestFindDistinctModel.init(function(err,result){
+
+                        if(err) return done(err);
+                        var ins = new TestFindDistinctModel();
+                        async.series([
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'x';
+                                ins.likes = 'xx';
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'y';
+                                ins.likes = 'yy';
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'z';
+                                ins.likes = 'zz';
+                                ins.save(callback);
+                            }
+
+                        ],done);
+                    });
+                });
+
+                it('selecting distinct static columns', function(done){
+                    TestFindDistinctModel.find({},{ distinct : ['username','name','surname']},function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 1);
+                        assert.propertyVal(results[0],'username','ab');
+                        assert.propertyVal(results[0],'name','a');
+                        assert.propertyVal(results[0],'surname','b');
+                        done();
+                    });
+                });
+
+                it('selecting distinct static columns querying by primary key', function(done){
+                    TestFindDistinctModel.find({ username : 'ab' },{ distinct : ['username','name','surname']},function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 1);
+                        assert.propertyVal(results[0],'username','ab');
+                        assert.propertyVal(results[0],'name','a');
+                        assert.propertyVal(results[0],'surname','b');
+                        done();
+                    });
+                });
+
+                it('selecting non static columns throws error', function(done){
+                    TestFindDistinctModel.find({},{ distinct : ['username','name','favorites']},function(err, results){
+                        assert.ok(err);
+                        assert.propertyVal(err, 'name', 'apollo.model.find.dberror');
+                        done();
+                    });
+                });
+
+                it('selecting distinct static columns querying by only static columns throws error', function(done){
+                    TestFindDistinctModel.find({ name : 'a' },{ distinct : ['username','name','surname']},function(err, results){
+                        assert.ok(err);
+                        assert.propertyVal(err, 'name', 'apollo.model.find.dberror');
+                        done();
+                    });
                 });
             });
 
