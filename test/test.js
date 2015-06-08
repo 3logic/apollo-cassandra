@@ -843,6 +843,14 @@ describe('Apollo > ', function(){
                 });
             });
 
+            it('faulty find (invalid allowfiltering option value)', function(done){
+                TestModel.find({},{ allowfiltering: 'true' },function(err, results){
+                    assert.ok(err);
+                    assert.propertyVal(err,'name','apollo.model.find.allowfiltering');
+                    done();
+                });
+            });
+
             it('ordering by a clustering key ($orderby)', function(done){
                 TestModel.find({'v1':11, 'v2':{'$in':['twelve','twentytwo']}, '$orderby':{'$desc' :'v3'} },function(err, results){
                     assert.notOk(err);

@@ -50,6 +50,9 @@ var AERROR_TYPES = {
 	'model.find.limittype': {
 		msg: 'Invalid limit value'
 	},
+	'model.find.allowfiltering': {
+		msg: 'Invalid allow filtering value. Must be Boolean'
+	},
 	'model.find.dberror': {
 		msg: 'Error during find query on DB -> %s'
 	},

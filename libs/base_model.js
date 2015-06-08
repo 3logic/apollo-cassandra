@@ -689,6 +689,9 @@ BaseModel.find = function(query_ob, options, callback){
     };
 
     options = lodash.defaults(options, defaults);
+    
+    if(typeof options.allowfiltering !== 'boolean')
+        return callback(build_error('model.find.allowfiltering'));
 
     var query;
     try{
