@@ -74,14 +74,12 @@ Now that apollo is connected, create a `model` describing it through a `schema`
 
 ```javascript
 var personSchema = {
-    { 
-        fields:{
-            name    : "text",
-            surname : "text",
-            age     : "int"
-        }, 
-        key:["name"] 
-    }
+    fields:{
+        name    : "text",
+        surname : "text",
+        age     : "int"
+    },
+    key:["name"] 
 };
 ```
 
