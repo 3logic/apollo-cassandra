@@ -1,5 +1,6 @@
-- next
-
+- 1.0.6
+    
+    - DEPRECATION
     - multi-schema for easier querying?
 
 

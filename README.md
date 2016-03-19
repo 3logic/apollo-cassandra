@@ -1,9 +1,18 @@
 Apollo
 ======
 
+
 [![Build Status](https://travis-ci.org/3logic/apollo-cassandra.svg?branch=master)](https://travis-ci.org/3logic/apollo-cassandra)
 [![Coverage Status](https://coveralls.io/repos/3logic/apollo/badge.png?branch=master)](https://coveralls.io/r/3logic/apollo?branch=master)
 
+# **Deprecated**
+
+**Attention!!!**    
+This module is deprecated due to lack of maintenance. Please consider some valid alternatives as:
+- [dakota-cassandra](https://github.com/ahlwong/dakota-cassandra) A full featured Apache Cassandra ORM built on top of datastax/nodejs-driver
+- [express-cassandra](https://github.com/masumsoft/express-cassandra) Framework Independent Cassandra Object Models (ORM) for NodeJS
+
+## Description
 
 Apollo is a <a href="http://cassandra.apache.org/" target="_blank">Cassandra</a> object modeling for <a href="http://nodejs.org/" target="_blank">node.js</a>
 
