@@ -302,7 +302,14 @@ BaseModel._create_table_query = function(table_name,schema){
             continue;
         }
         field_type = schemer.get_field_type(schema, k);
-        rows.push(util.format('"%s" %s',k,field_type));
+        rows.push(
+            util.format(
+                '"%s" %s %s',
+                k,
+                field_type,
+                schema.fields[k]["static"] ? "static" : " " 
+            )
+        );
     }
 
     var partition_key = schema.key[0],
@@ -370,6 +377,11 @@ BaseModel._get_db_table_schema = function (callback){
                 if(!db_schema.key)
                     db_schema.key = [[]];
                 db_schema.key[row.component_index+1] = row.column_name;
+            }
+            else if(row.type == 'static'){
+                if(!db_schema['static'])
+                    db_schema['static'] = [];
+                db_schema['static'].push(row.column_name);
             }
             if(row.index_name){
                 if(!db_schema.indexes)
@@ -564,12 +576,22 @@ BaseModel._create_find_query = function(query_ob, options){
         }
     }
     var where = this._create_where_clause(query_ob);
+    var distinct = '*';
+    if( options.distinct != null){
+        if( !options.distinct instanceof Array ){
+            throw(build_error('model.find.invaliddistinct'));
+        }
+        distinct = 'DISTINCT '+options.distinct.join(', ');
+    }
+    
     var query = util.format(
-        'SELECT * FROM "%s" %s %s %s ALLOW FILTERING;',
+        'SELECT %s FROM "%s" %s %s %s %s;',
+        distinct,
         this._properties.table_name,
         where,
         order_keys.length ? 'ORDER BY '+ order_keys.join(', '):' ',
-        limit ? 'LIMIT '+limit : ' '
+        limit ? 'LIMIT '+limit : ' ',
+        options.allowfiltering ? 'ALLOW FILTERING' : ' '
     );
     return query;
 };
@@ -671,7 +693,9 @@ BaseModel.find = function(query_ob, options, callback){
 
     var defaults = {
         raw : false,
-        consistency : CONSISTENCY_FIND
+        consistency : CONSISTENCY_FIND,
+        allowfiltering : false,
+        distinct : null
     };
 
     options = lodash.defaults(options, defaults);

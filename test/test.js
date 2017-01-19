@@ -112,6 +112,26 @@ describe('Apollo > ', function(){
                 },
                 key:[["name", "surname"]]
             };
+        
+        var model_test_static = {
+                fields:{
+                    username: "text",
+                    name:{
+                        "type":"text",
+                        "static":true
+                    },
+                    surname:{
+                        "type":"text",
+                        "static":true
+                    },
+                    favorites:{
+                        "type":"text",
+                        "static":false
+                    },
+                    likes:"text",
+                },
+                key:[["username"],"favorites","likes"]
+            };
 
         it('add model', function(){
             var TestModel = ap.add_model("test1", model_test1);
@@ -178,6 +198,23 @@ describe('Apollo > ', function(){
             assert.propertyVal(ins,'name','foo');
             assert.propertyVal(ins,'surname', 'baz');
             assert.notOk(ins.complete_name);
+        });
+
+        it('adds model with static fields', function(done){
+            var TestModel = ap.add_model("teststaticfields", model_test_static);
+            TestModel._create_table(function (err) {
+                TestModel._get_db_table_schema(function(err, schema){
+                    assert.notOk(err);
+                    assert.property(schema,'static');
+                    assert.isArray(schema['static']);
+                    assert.equal(schema['static'][0], 'name');
+                    assert.equal(schema['static'][1], 'surname');
+                    assert.isFunction(TestModel);
+                    assert.property(TestModel,'find');
+                    assert.isFalse(TestModel.is_table_ready());
+                    done();
+                });
+            })
         });
 
         describe('Validation >', function(){
@@ -711,7 +748,7 @@ describe('Apollo > ', function(){
             });
 
             it('basic find', function(done){
-                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},function(err, results){
+                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 1);
                     var result = results[0];
                     assert.instanceOf(result, TestModel);
@@ -725,7 +762,7 @@ describe('Apollo > ', function(){
             });
 
             it('basic find with raw results', function(done){
-                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ raw: true },function(err, results){
+                TestModel.find({'v1':1, 'v4':'foo', 'v5':true},{ raw: true, allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 1);
                     var result = results[0];
                     assert.notInstanceOf(result, TestModel);
@@ -753,7 +790,7 @@ describe('Apollo > ', function(){
             });
 
             it('using >= ($gte) in clustering key', function(done){
-                TestModel.find({'v3':{'$gte':1 } },function(err, results){
+                TestModel.find({'v3':{'$gte':1 } }, { allowfiltering: true },function(err, results){
                     assert.lengthOf(results, 3);
                     done();
                 });
@@ -829,6 +866,88 @@ describe('Apollo > ', function(){
                 TestModel.find({'v1':11, 'v2':{'$in':['twelve','twentytwo']}, '$orderby':{'$asc': ['v6','v3']} },function(err, results){
                     assert.ok(err);
                     done();
+                });
+            });
+
+            describe('Distinct > ', function() {
+                
+                var TestFindDistinctModel;
+
+                beforeEach(function(done) {
+                    this.timeout(15000);
+
+                    TestFindDistinctModel = ap.add_model("testfinddistinct", model_test_static, {'mismatch_behaviour':'drop'});
+                    
+                    TestFindDistinctModel.init(function(err,result){
+
+                        if(err) return done(err);
+                        var ins = new TestFindDistinctModel();
+                        async.series([
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'x';
+                                ins.likes = 'xx';
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'y';
+                                ins.likes = 'yy';
+                                ins.save(callback);
+                            },
+                            function(callback){
+                                ins.username = 'ab';
+                                ins.name = 'a';
+                                ins.surname = 'b';
+                                ins.favorites = 'z';
+                                ins.likes = 'zz';
+                                ins.save(callback);
+                            }
+
+                        ],done);
+                    });
+                });
+
+                it('selecting distinct static columns', function(done){
+                    TestFindDistinctModel.find({},{ distinct : ['username','name','surname']},function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 1);
+                        assert.propertyVal(results[0],'username','ab');
+                        assert.propertyVal(results[0],'name','a');
+                        assert.propertyVal(results[0],'surname','b');
+                        done();
+                    });
+                });
+
+                it('selecting distinct static columns querying by primary key', function(done){
+                    TestFindDistinctModel.find({ username : 'ab' },{ distinct : ['username','name','surname']},function(err, results){
+                        assert.notOk(err);
+                        assert.lengthOf(results, 1);
+                        assert.propertyVal(results[0],'username','ab');
+                        assert.propertyVal(results[0],'name','a');
+                        assert.propertyVal(results[0],'surname','b');
+                        done();
+                    });
+                });
+
+                it('selecting non static columns throws error', function(done){
+                    TestFindDistinctModel.find({},{ distinct : ['username','name','favorites']},function(err, results){
+                        assert.ok(err);
+                        assert.propertyVal(err, 'name', 'apollo.model.find.dberror');
+                        done();
+                    });
+                });
+
+                it('selecting distinct static columns querying by only static columns throws error', function(done){
+                    TestFindDistinctModel.find({ name : 'a' },{ distinct : ['username','name','surname']},function(err, results){
+                        assert.ok(err);
+                        assert.propertyVal(err, 'name', 'apollo.model.find.dberror');
+                        done();
+                    });
                 });
             });
 
