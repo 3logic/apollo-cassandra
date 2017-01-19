@@ -302,7 +302,14 @@ BaseModel._create_table_query = function(table_name,schema){
             continue;
         }
         field_type = schemer.get_field_type(schema, k);
-        rows.push(util.format('"%s" %s',k,field_type));
+        rows.push(
+            util.format(
+                '"%s" %s %s',
+                k,
+                field_type,
+                schema.fields[k]["static"] ? "static" : " " 
+            )
+        );
     }
 
     var partition_key = schema.key[0],
@@ -370,6 +377,11 @@ BaseModel._get_db_table_schema = function (callback){
                 if(!db_schema.key)
                     db_schema.key = [[]];
                 db_schema.key[row.component_index+1] = row.column_name;
+            }
+            else if(row.type == 'static'){
+                if(!db_schema['static'])
+                    db_schema['static'] = [];
+                db_schema['static'].push(row.column_name);
             }
             if(row.index_name){
                 if(!db_schema.indexes)
